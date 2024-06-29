@@ -1,0 +1,6 @@
+pip install notebook
+pip install ttkbootstrap
+pip install file_read_backwards
+pip install tksheet
+pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+pip install -U pyinstaller
