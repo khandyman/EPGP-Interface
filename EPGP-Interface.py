@@ -2698,6 +2698,7 @@ class TabBank(ttk.Frame):
             # build list of dictionary entries;
             # each one containing a range and item
             data = self.build_data()
+
             # set class member max row back to
             # default value of 0; this prevents
             # incorrect max row values if multiple
@@ -2717,11 +2718,89 @@ class TabBank(ttk.Frame):
                     sheets.append_values(range_body_values)
 
                 except HttpError as error:
-                    print(f"An error occurred: {error}")
+                    print(f"An append error occurred: {error}")
                     display_error(f'The Google API has returned this error:\n{error.error_details}')
                     return error
 
             self.clear_bank()
+
+    def sync_spells(self, log_data, sheet_data):
+        # This function compares spell bank tab with app sheet
+        # to find spells in log that do not exist on mules;
+        # rows found are deleted
+        # Parameters: log_data (list)
+        #             sheet_data (list)
+        # Return: log_data (list)
+
+        # the id of the Spell Bank tab spreadsheet
+        sheet_id = '1071255945'
+        sheet_mule = sheet_data[0][1]
+        # grab the max list index to use in reversing loop
+        index = len(log_data) - 1
+
+        # loop through data from log in reverse order, to avoid
+        # getting out of sync with ongoing deletions
+        for log_row in reversed(log_data):
+            # double booleans to signal matching mule but
+            # not matching spell
+            found_mule = False
+            found_spell = False
+
+            # if row is empty, we can't assign values
+            if len(log_row) > 0:
+                log_mule = log_row[1]
+
+                # compare mule in log row with sheet
+                if log_mule == sheet_mule:
+                    # flag boolean as true
+                    found_mule = True
+                    log_spell = log_row[2]
+
+                    # loop through data from sheet
+                    for sheet_row in sheet_data:
+                        sheet_spell = sheet_row[2]
+
+                        # if spell is found, no deletion necessary,
+                        # so flag as true
+                        if log_spell == sheet_spell:
+                            found_spell = True
+                            break
+
+            # if row is empty, because officer forgot to delete it,
+            # or if mule from log matches sheet but spell from log not
+            # found in sheet
+            if len(log_row) < 1 or (found_mule is True and found_spell is False):
+                # then build delete JSON payload for sheets API
+                request_body = {
+                    'requests': [
+                        {
+                            'deleteDimension': {
+                                'range': {
+                                    'sheetId': sheet_id,
+                                    'dimension': 'ROWS',
+                                    'startIndex': index + 2,
+                                    'endIndex': index + 3
+                                }
+                            }
+                        }
+                    ]
+                }
+
+                try:
+                    # send a deleteDimension batchUpdate to sheets,
+                    # then remove index from log_data to keep it up
+                    # to date
+                    print(request_body)
+                    sheets.delete_rows(request_body)
+                    log_data.pop(index)
+                except HttpError as error:
+                    print(f"A delete error occurred: {error}")
+                    display_error(f'The Google API has returned this error:\n{error.error_details}')
+
+            # decrement index, since this is a reversed loop
+            index -= 1
+
+        return log_data
 
     def build_data(self):
         # This function builds the list of dictionary
@@ -2751,7 +2830,10 @@ class TabBank(ttk.Frame):
                 log_data_2 = self.get_sky_nodrops()
                 qty_col = 1
             case _:
-                log_data = sheets.read_values(SPELL_BANK, "FORMATTED_VALUE")
+                # if spell bank, return result of read_values to syncing algorithm to prune
+                # spell bank tab of spells that no longer exist on mules
+                log_data = self.sync_spells(sheets.read_values(SPELL_BANK, "FORMATTED_VALUE"),
+                                            sheet_data)
                 qty_col = 3
 
         # loop through each row in the bank sheet
@@ -3822,7 +3904,28 @@ class GoogleSheets:
             .execute()
         )
 
+        # sheets.get_service().spreadsheets().batchUpdate(
+        #     spreadsheetId=spreadsheet_id,
+        #     body=request_body
+        # ).execute()
+
         # print(f"{(result.get('updates').get('updatedCells'))} cells appended.")
+
+        return result
+
+    def delete_rows(self, request_body):
+        # This function deletes a row from the google sheet
+        # Parameters: self (inherits from GoogleSheets parent)
+        #             request_body (JSON) - deleteDimension payload
+        # Return: result object indicating success or failure
+
+        result = (
+            self._service.spreadsheets()
+            .batchUpdate(
+                spreadsheetId=SPREADSHEET_ID,
+                body=request_body
+            ).execute()
+        )
 
         return result
 
