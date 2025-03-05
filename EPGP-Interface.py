@@ -98,7 +98,7 @@ class Notebook(ttk.Window):
         # ----- window setup -----
         super().__init__(themename='solar')
         self.withdraw()
-        self.title('EPGP Interface v2.12')
+        self.title('EPGP Interface v2.13')
         self.geometry('880x630')
         self.resizable(False, False)
         # main window icon
@@ -357,7 +357,7 @@ class AddEP(tk.Toplevel):
         add_level_label = ttk.Label(self._entry_frame, text='Level', font='Calibri 14')
         add_level_label.place(x=330, y=10, width=50)
 
-        levels = [str(x).zfill(1) for x in range(35, 66)]
+        levels = [str(x).zfill(1) for x in range(1, 66)]
         add_level_entry = ttk.Combobox(self._entry_frame, values=levels)
         add_level_entry.configure(font=('Calibri', 12), height=40, textvariable=self._add_level)
         add_level_entry.place(x=330, y=45, width=50)
@@ -504,7 +504,7 @@ class AddEP(tk.Toplevel):
         if year_correct:
             validation_flags[3] = True
 
-        num_list = [str(x).zfill(1) for x in range(35, 66)]
+        num_list = [str(x).zfill(1) for x in range(1, 66)]
 
         for item in num_list:
             if self.get_add_level() == item:
