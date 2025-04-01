@@ -64,7 +64,7 @@ SKY_NO_DROPS = "Sky Bank!D3:K"
 MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 CLASSES = ['Bard', 'Beastlord', 'Cleric', 'Druid', 'Enchanter', 'Magician', 'Monk', 'Necromancer',
            'Paladin', 'Ranger', 'Rogue', 'Shadow Knight', 'Shaman', 'Warrior', 'Wizard', 'Unknown']
-RACES = ['Barbarian', 'Dark Elf', 'Dwarf', 'Erudite', 'Gnome', 'Half Elf', 'Halfling', 'High Elf',
+RACES = ['Barbarian', 'Dark Elf', 'Dwarf', 'Erudite', 'Froglok', 'Gnome', 'Half Elf', 'Halfling', 'High Elf',
          'Human', 'Iksar', 'Ogre', 'Troll', 'Vah Shir', 'Wood Elf', 'Unknown']
 
 # validation messages
@@ -76,6 +76,8 @@ ENTER_GP_ERROR = 'Please enter a date, character, loot and gear level.'
 FIND_WINNER_ERROR = 'Please open bidding and enter at least two characters'
 COPY_WINNER_ERROR = 'Please find a winner first'
 READ_WINNER_ERROR = 'Problem reading winner from Get Priority tab. Did you enter any alts by mistake?'
+PLAYERS_FOUND_ERROR = 'No players found in EPGP Log. Continuing to load with blank player list.'
+LOOT_FOUND_ERROR = 'No loot found in EPGP Log. Continuing to load with blank loot list.'
 RAID_FOUND_ERROR = 'No raids found in log file. You will not be able to retrieve EP data.'
 NO_LOG_ERROR = "Please choose a log file to continue."
 STUBBORN_LOG_ERROR = "Sorry, you cannot run EPGP without a log file. Bye!"
@@ -98,7 +100,7 @@ class Notebook(ttk.Window):
         # ----- window setup -----
         super().__init__(themename='solar')
         self.withdraw()
-        self.title('EPGP Interface v2.13')
+        self.title('EPGP Interface v2.2')
         self.geometry('880x630')
         self.resizable(False, False)
         # main window icon
@@ -1400,7 +1402,7 @@ class TabGP(ttk.Frame):
         self._gp_name.set(gp_value)
 
     def set_gp_loot(self, gp_value):
-        self._gp_loot.set(gp_value)
+        self._gp_loot.set(gp_value.strip())
 
     def set_gp_loot_entry(self, gp_value):
         self._gp_loot_entry['values'] = gp_value
@@ -3492,27 +3494,33 @@ class AutocompleteCombobox(ttk.Combobox):
         # update values list with current matches
         _hits = self.update_list()
 
-        # if we have a new hit list, keep this in mind
-        if _hits != self._hits:
-            self._hit_index = 0
-            self._hits = _hits
-        # only allow cycling if we are in a known hit list
-        if _hits == self._hits and self._hits:
-            self._hit_index = (self._hit_index + delta) % len(self._hits)
+        ###########################################################
+        # Temporarily removing this code to improve auto complete #
+        # functionality; leaving it commented out but in the code #
+        # in case the officers want this functionality restored   #
+        ###########################################################
 
-        # now finally perform the auto-completion
-        if self._hits and len(_hits) == 1:
-            curr_pos = self.position
-
-            self.delete(0, tk.END)
-            self.insert(0, self._hits[self._hit_index])
-
-            self.select_range(curr_pos, tk.END)
-            self.position = curr_pos
-
-            # temporarily disable keyboard to prevent extra characters
-            # at end of selection when user types too fast
-            keyboard.pause(0.5)
+        # # if we have a new hit list, keep this in mind
+        # if _hits != self._hits:
+        #     self._hit_index = 0
+        #     self._hits = _hits
+        # # only allow cycling if we are in a known hit list
+        # if _hits == self._hits and self._hits:
+        #     self._hit_index = (self._hit_index + delta) % len(self._hits)
+        #
+        # # now finally perform the auto-completion
+        # if self._hits and len(_hits) == 1:
+        #     curr_pos = self.position
+        #
+        #     self.delete(0, tk.END)
+        #     self.insert(0, self._hits[self._hit_index])
+        #
+        #     self.select_range(curr_pos, tk.END)
+        #     self.position = curr_pos
+        #
+        #     # temporarily disable keyboard to prevent extra characters
+        #     # at end of selection when user types too fast
+        #     keyboard.pause(0.5)
 
     def handle_keyrelease(self, event):
         global key_strokes
@@ -3653,10 +3661,13 @@ class GoogleSheets:
     # than the formula; we are also using the sum function
     # to flatten the 2D lists retrieved into 1D lists
     def set_player_list(self):
-        self._player_list = (
-            sum(self.read_values(RAIDER_LIST_RANGE, 'FORMATTED_VALUE'), []))
+        raw_players = self.read_values(RAIDER_LIST_RANGE, 'FORMATTED_VALUE')
 
-        self._player_dict = self.build_player_dict()
+        if raw_players:
+            self._player_list = sum(raw_players, [])
+            self._player_dict = self.build_player_dict()
+        else:
+            tkinter.messagebox.showinfo('No Players Found', PLAYERS_FOUND_ERROR)
 
     def add_player(self, name):
         self._player_list.append(name)
@@ -3733,48 +3744,6 @@ class GoogleSheets:
             # no player match found, or values found at 'counter'
             master_dict[player] = {'level': player_level, 'class': player_class, 'race': player_race}
 
-            # match player_class:
-            #     case 'Illusionist' | 'Beguiler' | 'Phantasmist' | 'Coercer':
-            #         player_class = 'Enchanter'
-            #     case 'Elementalist' | 'Conjurer' | 'Arch Mage' | 'Arch Convoker':
-            #         player_class = 'Magician'
-            #     case 'Heretic' | 'Defiler' | 'Warlock' | 'Arch Lich':
-            #         player_class = 'Necromancer'
-            #     case 'Channeler' | 'Evoker' | 'Sorcerer' | 'Archanist':
-            #         player_class = 'Wizard'
-            #     case 'Vicar' | 'Templar' | 'High Priest' | 'Archon':
-            #         player_class = 'Cleric'
-            #     case 'Wanderer' | 'Preserver' | 'Hierophant' | 'Storm Warden':
-            #         player_class = 'Druid'
-            #     case 'Mystic' | 'Luminary' | 'Oracle' | 'Prophet':
-            #         player_class = 'Shaman'
-            #     case 'Minstrel' | 'Troubadour' | 'Virtuoso' | 'Maestro':
-            #         player_class = 'Bard'
-            #     case 'Disciple' | 'Master' | 'Grandmaster' | 'Transcendent':
-            #         player_class = 'Monk'
-            #     case 'Pathfinder' | 'Outrider' | 'Warder' | 'Forest Stalker':
-            #         player_class = 'Ranger'
-            #     case 'Rake' | 'Blackguard' | 'Assassin' | 'Deceiver':
-            #         player_class = 'Rogue'
-            #     case 'Cavalier' | 'Knight' | 'Crusader' | 'Lord Protector':
-            #         player_class = 'Paladin'
-            #     case 'Reaver' | 'Revenant' | 'Grave Lord' | 'Dread Lord':
-            #         player_class = 'Shadow Knight'
-            #     case 'Champion' | 'Myrmidon' | 'Warlord' | 'Overlord':
-            #         player_class = 'Warrior'
-            #     case 'Primalist' | 'Animist' | 'Savage Lord' | 'Feral Lord':
-            #         player_class = 'Beastlord'
-            #     case _:
-            #         player_class = player_class
-
-            # if the only entry for a player is anonymous, they will not
-            # have been added to master dictionary, so manually add them
-            # now with default settings
-
-        # print(self.get_player_list())
-        # for player in master_dict:
-        #     print(player, master_dict[player]['level'], master_dict[player]['race'], master_dict[player]['class'])
-
         return master_dict
 
     def set_effort_points(self):
@@ -3797,15 +3766,19 @@ class GoogleSheets:
         # Return: curr_max (str)
 
         curr_max = 0
-        # Use the sum function to flatten 2D list into 1D list
-        level_list = sum(self.read_values(LEVEL_RANGE, 'FORMATTED_VALUE'), [])
 
-        # Loop through results, ignoring anons
-        # and recording max number found
-        for level in level_list:
-            if level != 'ANONYMOUS':
-                if int(level) > curr_max:
-                    curr_max = int(level)
+        # Use the sum function to flatten 2D list into 1D list
+        raw_levels = self.read_values(LEVEL_RANGE, 'FORMATTED_VALUE')
+
+        if raw_levels:
+            level_list = sum(raw_levels, [])
+
+            # Loop through results, ignoring anons
+            # and recording max number found
+            for level in level_list:
+                if level != 'ANONYMOUS':
+                    if int(level) > curr_max:
+                        curr_max = int(level)
 
         self._max_level = str(curr_max)
 
@@ -3817,9 +3790,14 @@ class GoogleSheets:
         # in the log and we want the other lists in the order
         # entered in the log
         try:
-            self._loot_names = (
-                list(set(sum(self.read_values(LOOT_NAMES_RANGE, 'FORMATTED_VALUE'), []))))
-            self._loot_names.sort()
+            raw_loot = self.read_values(LOOT_NAMES_RANGE, 'FORMATTED_VALUE')
+
+            if raw_loot:
+                self._loot_names = (
+                    list(set(sum(raw_loot, []))))
+                self._loot_names.sort()
+            else:
+                tkinter.messagebox.showinfo('No Loot Found', LOOT_FOUND_ERROR)
         except Exception as error:
             tkinter.messagebox.showinfo('Error', str(error))
 
