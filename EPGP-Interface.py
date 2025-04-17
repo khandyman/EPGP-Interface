@@ -100,7 +100,7 @@ class Notebook(ttk.Window):
         # ----- window setup -----
         super().__init__(themename='solar')
         self.withdraw()
-        self.title('EPGP Interface v2.2')
+        self.title('EPGP Interface v2.21')
         self.geometry('880x630')
         self.resizable(False, False)
         # main window icon
@@ -1586,7 +1586,7 @@ class TabGP(ttk.Frame):
                 case '1':
                     value[0].set('')
                 case '2':
-                    value[0].set('Major Upgrade')
+                    value[0].set('High Bid')
                 case '3':
                     value[0].set('')
 
@@ -1727,7 +1727,7 @@ class TabGP(ttk.Frame):
         upper_bound = len(values)
 
         # And use it to 'None' out the bid level
-        # from the middle column if the user has
+        # from the middRle column if the user has
         # for some reason skipped rows in the list
         # frame; this is a fail-safe to ensure that
         # only rows with good data are written to the
