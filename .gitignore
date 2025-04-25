@@ -1,7 +1,7 @@
 # Default ignored files
 /token.json
 /credentials.json
-release/credentials.json
+Release/
 /Links.txt
 /config
 /EPGP-Interface.zip
