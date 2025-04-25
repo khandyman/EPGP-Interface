@@ -61,8 +61,8 @@ def start_up():
     # Create the main tab classes
     ep_tab = TabEP(app, sheets, setup)
     gp_tab = TabGP(app, sheets)
-    config_tab = TabConfig(app)
     bank_tab = TabBank(app, sheets, setup)
+    config_tab = TabConfig(app, setup)
 
     # Run an initial scan of the log file to
     # set the available raid time stamps
@@ -93,22 +93,12 @@ if __name__ == "__main__":
     # global namespace for main window tabs
     global ep_tab, gp_tab, bank_tab, config_tab
 
-    # global variable to slow down autocomplete
-    key_strokes = 0
-
     # Create the root window
     app = Notebook()
 
     # Set up the Google Sheets API communication framework
     sheets = GoogleSheets()
     setup = Setup()
-
-    # Create the main tab classes
-    # ep_tab = TabEP(app, sheets, setup)
-    # gp_tab = TabGP(app, sheets)
-    # bank_tab = TabBank(app, setup)
-    # config_tab = TabConfig(app)
-
 
     # Create loading screen and call it after a brief
     # pause to allow it to display, then run start-up

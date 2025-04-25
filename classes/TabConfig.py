@@ -1,10 +1,8 @@
 from tkinter import filedialog
 import tkinter as tk
 import ttkbootstrap as ttk
-import os.path
-import sys
 
-# from main import ep_tab, bank_tab
+import __main__
 from classes.Helper import Helper
 
 class TabConfig(ttk.Frame):
@@ -14,12 +12,13 @@ class TabConfig(ttk.Frame):
     #   as the application
     # - Changing and saving the current window theme
 
-    def __init__(self, parent):
+    def __init__(self, parent, setup):
         super().__init__(parent)
 
         # ----- class members -----
         self._helper = Helper()
         self._app = parent
+        self._setup = setup
 
         self.CONFIG_PATH = "config"
         self.NO_LOG_ERROR = "Please choose a log file to continue."
@@ -30,33 +29,31 @@ class TabConfig(ttk.Frame):
 
         self._list_frame = tk.Frame(self)
         self._list_scroll = ttk.Scrollbar(self._list_frame, orient=tk.VERTICAL)
-        self._mule_list = tk.Listbox(self._list_frame)
+        self._mule_list_box = tk.Listbox(self._list_frame)
 
         self._log_file = ttk.StringVar()
         self._app_theme = ttk.StringVar()
+        self._mule_list = []
 
         self.configure(width=880, height=595)
         self.place(x=0, y=0)
 
         self.create_widgets()
         # Read in the log file path at startup
-        # self.import_config(True)
+        self.import_config()
 
     # ----- getters -----
     def get_log_file(self):
-        return self._log_file.get()
+        return self._setup.get_log_file()
 
     def get_officer(self):
-        log_file = os.path.basename(self.get_log_file())
-        officer_name = log_file[6:len(log_file)-12]
-
-        return officer_name
+        return self._setup.get_officer()
 
     def get_mule_list_selection(self):
-        return self._mule_list.get(tk.ANCHOR)
+        return self._mule_list_box.get(tk.ANCHOR)
 
     def get_mule_list_contents(self):
-        return self._mule_list.get(0, tk.END)
+        return self._mule_list_box.get(0, tk.END)
 
     def get_app_theme(self):
         return self._app_theme.get()
@@ -64,12 +61,19 @@ class TabConfig(ttk.Frame):
     # ----- setters -----
     def set_log_file(self, config_value):
         self._log_file.set(config_value)
+        self._setup.set_log_file(config_value)
 
-    def set_mule_list(self, set_type, inventory_file):
+    def set_mule_list_box(self, set_type, inventory_file):
         if set_type == 'insert':
-            self._mule_list.insert(tk.END, inventory_file)
+            self._mule_list_box.insert(tk.END, inventory_file)
         else:
-            self._mule_list.delete(tk.ANCHOR)
+            self._mule_list_box.delete(tk.ANCHOR)
+
+        self.set_mule_list(self.get_mule_list_contents())
+
+    def set_mule_list(self, mule_list):
+        self._mule_list = mule_list
+        self._setup.set_mule_list(mule_list)
 
     def set_app_theme(self, config_value):
         self._app_theme.set(config_value)
@@ -97,11 +101,11 @@ class TabConfig(ttk.Frame):
 
         self._list_frame.place(x=20, y=204, width=650)
 
-        self._list_scroll.configure(command=self._mule_list.yview)
+        self._list_scroll.configure(command=self._mule_list_box.yview)
         self._list_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self._mule_list.configure(font=('Calibri', 12), yscrollcommand=self._list_scroll.set)
-        self._mule_list.pack(fill=tk.BOTH)
+        self._mule_list_box.configure(font=('Calibri', 12), yscrollcommand=self._list_scroll.set)
+        self._mule_list_box.pack(fill=tk.BOTH)
 
         delete_mule_button = ttk.Button(self, text='Delete Mule', style='primary.Outline.TButton',
                                         command=self.delete_mule)
@@ -132,63 +136,11 @@ class TabConfig(ttk.Frame):
     # app.style.theme_use('vapor')
     # print(self.get_app_theme())
 
-    def import_config(self, initial):
-        # This function is run at start-up to read in
-        # the path to the player's EQ log file
-        # Parameters: self (inherit from TabConfig parent)
-        # Return: player_log (string)
+    def import_config(self):
+        self.set_log_file(self._setup.get_log_file())
 
-        # If the 'config' file path does not exist display
-        # error and run the change_log function
-
-        if not os.path.isfile(self.CONFIG_PATH):
-            self.hide_window()
-            self._helper.display_error(self.NO_LOG_ERROR)
-            self.change_log(initial)
-
-        # Now check for the 'config' file again; if it still
-        # doesn't exist (because user didn't choose a file
-        # or something else weird is going on, display
-        # an error and shut down the app
-        if not os.path.isfile(self.CONFIG_PATH):
-            self._helper.display_error(self.STUBBORN_LOG_ERROR)
-            sys.exit()
-        else:
-            # If the config file is found, read in the path
-            # to the player's log file, set the label widget
-            # to it, then return the path as a string
-            config_list = self.read_config()
-
-            for item in config_list:
-                line_slice = item.split(',')
-
-                if len(line_slice) == 2:
-                    if line_slice[0] == 'log':
-                        self.set_log_file(line_slice[1])
-                    else:
-                        self.set_mule_list('insert', line_slice[1])
-                else:
-                    self.hide_window()
-                    self._helper.display_error(self.BAD_CONFIG_ERROR)
-                    sys.exit()
-
-            self.refresh_raids(initial)
-
-    def hide_window(self):
-        self._app.overrideredirect(True)
-        self._app.attributes('-alpha', 0)
-        self._app.deiconify()
-
-    def read_config(self):
-        # This function reads the user's config file
-        # and creates a list of the lines inside
-        # Parameters: none
-        # Return: config_list (list)
-
-        with open(self.CONFIG_PATH) as file:
-            config_list = [line.strip() for line in file]
-
-        return config_list
+        for item in self._setup.get_mule_list():
+            self.set_mule_list_box('insert', item)
 
     def change_log(self, initial):
         # This function changes a user's log file; it writes
@@ -197,7 +149,7 @@ class TabConfig(ttk.Frame):
         # Return: boolean
 
         # record original file path in case of error
-        old_file = self.get_log_file()
+        old_file = self._setup.get_log_file()
         # Pop an open file dialog
         file_path = filedialog.askopenfilename(title="Select Log File", filetypes=[("Text files", "*.txt")])
 
@@ -266,10 +218,10 @@ class TabConfig(ttk.Frame):
         # then updates config with current list of mules
         # Parameters:  self (inherit from TabConfig parent)
         # Return: none
-        from main import bank_tab
 
-        self.set_mule_list('delete', tk.ANCHOR)
-        bank_tab.set_bank_mule_combo()
+        self.set_mule_list_box('delete', tk.ANCHOR)
+        self.set_mule_list(self.get_mule_list_contents())
+        __main__.bank_tab.set_bank_mule_combo()
         self.write_config()
 
     def add_mule(self):
@@ -277,10 +229,9 @@ class TabConfig(ttk.Frame):
         # then updates config with current list of mules
         # Parameters:  self (inherit from TabConfig parent)
         # Return: none
-        from main import bank_tab
 
         file_path = filedialog.askopenfilename(title="Select Mule Inventory File",
-                                               filetypes=[("Text files", "*.txt")])
+                                               filetypes=[("Text files", "*Inventory.txt")])
 
         if self.validate_add_mule(file_path):
             if file_path:
@@ -288,8 +239,9 @@ class TabConfig(ttk.Frame):
                 # insert new mule file path into list box,
                 # update drop down on bank tab, and write
                 # to config
-                self.set_mule_list('insert', file_path)
-                bank_tab.set_bank_mule_combo()
+                self.set_mule_list_box('insert', file_path)
+                self.set_mule_list(self.get_mule_list_contents())
+                __main__.bank_tab.set_bank_mule_combo()
                 self.write_config()
 
                 return True

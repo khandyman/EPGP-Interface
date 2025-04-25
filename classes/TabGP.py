@@ -274,13 +274,10 @@ class TabGP(ttk.Frame):
         # Return: none
 
         for key, value in self.get_list_frame():
-            print(str(key)[:1])
             match str(key)[:1]:
                 case '1':
                     value[0].set('')
                 case '2':
-                    # set gear level drop downs to the default
-                    # value[0].set(sheets.get_bid_levels()[1])
                     value[0].set('')
                 case '3':
                     value[0].set('')

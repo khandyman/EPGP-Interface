@@ -4,7 +4,6 @@ from datetime import datetime
 import re
 
 from classes.AutocompleteCombobox import AutocompleteCombobox
-# from classes.GoogleSheets import GoogleSheets
 from classes.Helper import Helper
 
 class AddEP(tk.Toplevel):

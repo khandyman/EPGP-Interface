@@ -121,7 +121,7 @@ class AddBank(tk.Toplevel):
 
         add_officer_entry = ttk.Entry(self._entry_frame)
         add_officer_entry.configure(font=('Calibri', 12), textvariable=self._add_officer)
-        self.set_add_officer(config_tab.get_officer())
+        self.set_add_officer(self._setup.get_officer())
         add_officer_entry.place(x=10, y=45, width=100)
 
         add_mule_label = ttk.Label(self._entry_frame, text='Mule', font='Calibri 14')
@@ -226,7 +226,7 @@ class AddBank(tk.Toplevel):
             self.update()
 
     def validate_submit(self):
-        if self.get_add_officer() != config_tab.get_officer():
+        if self.get_add_officer() != self._setup.get_officer():
             self._helper.display_error(self.BAD_OFFICER_ERROR)
             return False
 

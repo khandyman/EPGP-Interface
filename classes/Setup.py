@@ -1,5 +1,4 @@
 from tkinter import filedialog
-import tkinter as tk
 import ttkbootstrap as ttk
 import os.path
 import sys

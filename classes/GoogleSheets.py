@@ -11,7 +11,7 @@ from classes.Helper import Helper
 
 class GoogleSheets:
     def __init__(self):
-        self.SCOPES = "https://www.googleapis.com/auth/spreadsheets"
+        self.SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
         try:
             # class members
@@ -31,7 +31,6 @@ class GoogleSheets:
             # If modifying these scopes, delete the file token.json.
 
             self.SPREADSHEET_ID = "1DJm8BhaaxZlwLea0ZVZcyVUhMvQ8_VcmIyahBijajjg"  # official EPGP log
-
             self.RAW_LEVELS = "EP Log!F3:F"
             self.RAW_CLASSES = "EP Log!G3:G"
             self.RAW_NAMES = "EP Log!H3:H"
@@ -418,15 +417,21 @@ class GoogleSheets:
         #               whether cell contents or formula is read
         # Return: values - 2d list
 
-        result = (
-            self._service.spreadsheets().values()
-            .get(spreadsheetId=self.SPREADSHEET_ID, range=read_range, valueRenderOption=value_render)
-            .execute()
-        )
-        values = result.get("values", [])
+        try:
+            result = (
+                self._service.spreadsheets().values()
+                .get(spreadsheetId=self.SPREADSHEET_ID, range=read_range, valueRenderOption=value_render)
+                .execute()
+            )
+            values = result.get("values", [])
 
-        if not values:
-            print("No data found.")
-            return
+            if not values:
+                print("No data found.")
+                return
 
-        return values
+            return values
+        except HttpError as error:
+            print(f"An error occurred: {error}")
+            self._helper.display_error("An HTTP error occurred. Please try again in a few moments.")
+
+            return []

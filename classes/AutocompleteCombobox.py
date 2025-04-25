@@ -65,8 +65,6 @@ class AutocompleteCombobox(ttk.Combobox):
             self.icursor(curr_index)
 
     def handle_keyrelease(self, event):
-        global key_strokes
-
         # event handler for the keyrelease event on this widget
         if event.keysym == "BackSpace":
             self.update_list()

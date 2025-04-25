@@ -4,8 +4,6 @@ import ttkbootstrap as ttk
 import tksheet
 import os.path
 
-# from main import config_tab
-# from classes.GoogleSheets import GoogleSheets
 from classes.AddBank import AddBank
 from classes.Helper import Helper
 
@@ -100,7 +98,7 @@ class TabBank(ttk.Frame):
         mule_list = []
         # get list of mule file paths from config tab
         file_list = list(self._setup.get_mule_list())
-        print(self._setup.get_mule_list())
+
         for file in file_list:
             # get file name from path
             file_name = os.path.basename(file)
@@ -710,11 +708,11 @@ class TabBank(ttk.Frame):
         # loop through each row in the bank sheet
         for sheet_row in sheet_data:
             # obtain variable values for clarity
-            officer = sheet_row[0]
-            mule = sheet_row[1]
-            item = sheet_row[2]
-            qty = sheet_row[3]
-            notes = sheet_row[4]
+            officer = sheet_row[0]      # noqa
+            mule = sheet_row[1]         # noqa
+            item = sheet_row[2]         # noqa
+            qty = sheet_row[3]          # noqa
+            notes = sheet_row[4]        # noqa
 
             # if current item is a sky no drop item
             if (self.check_sky_lists(item) is True
