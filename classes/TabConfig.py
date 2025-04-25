@@ -93,7 +93,7 @@ class TabConfig(ttk.Frame):
         log_entry.place(x=20, y=50, width=650, height=40)
 
         change_log_button = ttk.Button(self, text='Change Log', style='primary.Outline.TButton',
-                                       command=lambda: self.change_log(False))
+                                       command=lambda: self._setup.change_log(False))
         change_log_button.place(x=720, y=122, width=140)
 
         mule_label = ttk.Label(self, text='Mule Outputfiles')
@@ -142,40 +142,40 @@ class TabConfig(ttk.Frame):
         for item in self._setup.get_mule_list():
             self.set_mule_list_box('insert', item)
 
-    def change_log(self, initial):
-        # This function changes a user's log file; it writes
-        # the file path to config and sets the UI label
-        # Parameters: self (inherit from TabConfig parent)
-        # Return: boolean
-
-        # record original file path in case of error
-        old_file = self._setup.get_log_file()
-        # Pop an open file dialog
-        file_path = filedialog.askopenfilename(title="Select Log File", filetypes=[("Text files", "*.txt")])
-
-        # if the file path exists
-        if file_path:
-            # run validation check
-            if self.validate_change_log(file_path):
-                try:
-                    self.set_log_file(file_path)
-                    self.refresh_raids(initial)
-                except UnicodeDecodeError as error:
-                    # if error, set log file to old file path
-                    self.set_log_file(old_file)
-
-                    print(f"An error occurred: {error}")
-                    self._helper.display_error(f'An error occurred:\n{error}')
-
-                    self.refresh_raids(initial)
-
-                    return error
-
-                self.write_config()
-
-            return True
-        else:
-            return False
+    # def change_log(self, initial):
+    #     # This function changes a user's log file; it writes
+    #     # the file path to config and sets the UI label
+    #     # Parameters: self (inherit from TabConfig parent)
+    #     # Return: boolean
+    #
+    #     # record original file path in case of error
+    #     old_file = self._setup.get_log_file()
+    #     # Pop an open file dialog
+    #     file_path = filedialog.askopenfilename(title="Select Log File", filetypes=[("Text files", "*.txt")])
+    #
+    #     # if the file path exists
+    #     if file_path:
+    #         # run validation check
+    #         if self.validate_change_log(file_path):
+    #             try:
+    #                 self.set_log_file(file_path)
+    #                 self.refresh_raids(initial)
+    #             except UnicodeDecodeError as error:
+    #                 # if error, set log file to old file path
+    #                 self.set_log_file(old_file)
+    #
+    #                 print(f"An error occurred: {error}")
+    #                 self._helper.display_error(f'An error occurred:\n{error}')
+    #
+    #                 self.refresh_raids(initial)
+    #
+    #                 return error
+    #
+    #             self.write_config()
+    #
+    #         return True
+    #     else:
+    #         return False
 
     def refresh_raids(self, initial):
         # This function checks for raids in user's log

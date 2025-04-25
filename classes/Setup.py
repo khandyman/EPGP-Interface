@@ -1,4 +1,5 @@
 from tkinter import filedialog
+import tkinter.messagebox
 import ttkbootstrap as ttk
 import os.path
 import sys
@@ -47,7 +48,7 @@ class Setup:
         # error and run the change_log function
 
         if not os.path.isfile(self.CONFIG_PATH):
-            self._helper.display_error(self.NO_LOG_ERROR)
+            tkinter.messagebox.showinfo("No Log Found", self.NO_LOG_ERROR)
             self.change_log(initial)
 
         # Now check for the 'config' file again; if it still
@@ -55,7 +56,7 @@ class Setup:
         # or something else weird is going on, display
         # an error and shut down the app
         if not os.path.isfile(self.CONFIG_PATH):
-            self._helper.display_error(self.STUBBORN_LOG_ERROR)
+            tkinter.messagebox.showinfo("No Log Found", self.STUBBORN_LOG_ERROR)
             sys.exit()
         else:
             # If the config file is found, read in the path
@@ -88,7 +89,7 @@ class Setup:
         # record original file path in case of error
         old_file = self.get_log_file()
         # Pop an open file dialog
-        file_path = filedialog.askopenfilename(title="Select Log File", filetypes=[("Text files", "*.txt")])
+        file_path = filedialog.askopenfilename(title="Select Log File", filetypes=[("Text files", "*pq.proj.txt")])
 
         # if the file path exists
         if file_path:

@@ -4,7 +4,6 @@ import ttkbootstrap as ttk
 import ttkbootstrap.dialogs
 from datetime import datetime
 
-# from main import sheets
 from classes.AutocompleteCombobox import AutocompleteCombobox
 from classes.ListFrame import ListFrame
 from classes.Helper import Helper
@@ -43,9 +42,9 @@ class TabGP(ttk.Frame):
         self.GET_PRIORITY_RANGE = "Get Priority!E3:E"
 
         self.ENTER_GP_ERROR = 'Please enter a date, character, loot and gear level.'
-        self.FIND_WINNER_ERROR = 'Please open bidding and enter at least two characters'
+        self.FIND_WINNER_ERROR = 'Please enter at least two characters'
         self.COPY_WINNER_ERROR = 'Please find a winner first'
-        self.READ_WINNER_ERROR = 'Problem reading winner from Get Priority tab. Did you enter any alts by mistake?'
+        self.READ_WINNER_ERROR = 'Problem reading winner from Get Priority tab.\nDid you enter any alts by mistake?'
 
         self.configure(width=880, height=595)
         self.place(x=0, y=0)

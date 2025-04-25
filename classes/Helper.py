@@ -1,5 +1,4 @@
-import ttkbootstrap as ttk
-import ttkbootstrap.dialogs
+from ttkbootstrap.dialogs import Messagebox
 
 class Helper:
     @staticmethod
@@ -15,4 +14,4 @@ class Helper:
     def display_error(message):
         # This function serves as a template for all error
         # messages in the application
-        ttk.dialogs.Messagebox.show_error(message, 'App Error')
+        Messagebox.show_error(message, 'App Error')
