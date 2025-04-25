@@ -1,5 +1,13 @@
+from googleapiclient.errors import HttpError
 import tkinter as tk
 import ttkbootstrap as ttk
+import tksheet
+import os.path
+
+# from main import config_tab
+# from classes.GoogleSheets import GoogleSheets
+from classes.AddBank import AddBank
+from classes.Helper import Helper
 
 class TabBank(ttk.Frame):
     # This class creates the Guild Bank Tab, responsible for:
@@ -7,7 +15,7 @@ class TabBank(ttk.Frame):
     # - Importing data from the outputfiles
     # - Editing/appending items to the EPGP Log
 
-    def __init__(self, parent):
+    def __init__(self, parent, sheets, setup):
         super().__init__(parent)
 
         # ----- class widget members -----
@@ -22,6 +30,10 @@ class TabBank(ttk.Frame):
         self._bank_save = ttk.Button(self)
 
         # ----- class variable members -----
+        self._sheets = sheets
+        self._helper = Helper()
+        self._setup = setup
+
         self._bank_mule = tk.StringVar()
         self._bank_type = tk.IntVar()
         self._max_row = tk.IntVar()
@@ -29,6 +41,15 @@ class TabBank(ttk.Frame):
         self._sky_droppables = []
         self._sky_nodrops = []
         self._nodrop_data = []
+
+        # A1 notation ranges for Google Sheets API interactions
+        self.ITEM_BANK = "Item Bank!B3:H"
+        self.SPELL_BANK = "Spell Bank!B3:G"
+        self.SKY_DROPPABLES = "Sky Bank!A3:B"
+        self.SKY_NO_DROPS = "Sky Bank!D3:K"
+
+        self.MULE_SELECTION_ERROR = "Please select a mule from the drop down list."
+        self.SAVE_BANK_ERROR = "Nothing to save. Please import data first."
 
         # ----- start-up functions -----
         self.create_widgets()
@@ -78,8 +99,8 @@ class TabBank(ttk.Frame):
     def set_bank_mule_combo(self):
         mule_list = []
         # get list of mule file paths from config tab
-        file_list = list(config_tab.get_mule_list_contents())
-
+        file_list = list(self._setup.get_mule_list())
+        print(self._setup.get_mule_list())
         for file in file_list:
             # get file name from path
             file_name = os.path.basename(file)
@@ -110,7 +131,7 @@ class TabBank(ttk.Frame):
         # contains data to reduce API calls
 
         if len(self._sky_droppables) < 1:
-            droppables = sheets.read_values(SKY_DROPPABLES, "FORMATTED_VALUE")
+            droppables = self._sheets.read_values(self.SKY_DROPPABLES, "FORMATTED_VALUE")
 
             for row in droppables:
                 self._sky_droppables.append([item.lower() for item in row])
@@ -121,7 +142,7 @@ class TabBank(ttk.Frame):
         # contains data to reduce API calls
 
         if len(self.get_sky_nodrops()) < 1:
-            no_drops = sheets.read_values(SKY_NO_DROPS, "FORMATTED_VALUE")
+            no_drops = self._sheets.read_values(self.SKY_NO_DROPS, "FORMATTED_VALUE")
 
             for row in no_drops:
                 self._sky_nodrops.append([row[0].lower(), row[1], row[2], row[3], row[4], row[5], row[6]])
@@ -216,7 +237,7 @@ class TabBank(ttk.Frame):
         # Parameters: self (inherit from TabEP parent)
         # Return: none
 
-        AddBank(self, [])
+        AddBank(self, self._setup, [])
 
     def edit_record(self, event):
         # This function grabs data off the sheet in the row
@@ -236,7 +257,7 @@ class TabBank(ttk.Frame):
 
         data_list = [curr_officer, curr_mule, curr_item, curr_qty, curr_notes, curr_id, curr_row]
 
-        AddBank(self, data_list)
+        AddBank(self, self._setup, data_list)
 
     def get_bank_rows(self):
         # This function obtains the current
@@ -451,7 +472,7 @@ class TabBank(ttk.Frame):
                     continue
 
             # format list items to match sheet and add to master list
-            item_list = [config_tab.get_officer(), self.get_bank_mule(), key,
+            item_list = [self._setup.get_officer(), self.get_bank_mule(), key,
                          value['count'], value['slots'], value['id']]
             items_list.append(item_list)
 
@@ -465,7 +486,7 @@ class TabBank(ttk.Frame):
         # Return: file (string)
 
         mule_name = self.get_bank_mule()
-        mule_list = config_tab.get_mule_list_contents()
+        mule_list = self._setup.get_mule_list()
 
         for file in mule_list:
             # if mule is in current file path return
@@ -565,11 +586,11 @@ class TabBank(ttk.Frame):
             if len(data) > 0:
                 try:
                     # send the HTTP write request to the Sheets API
-                    sheets.append_values(range_body_values)
+                    self._sheets.append_values(range_body_values)
 
                 except HttpError as error:
                     print(f"An append error occurred: {error}")
-                    display_error(f'The Google API has returned this error:\n{error.error_details}')
+                    self._helper.display_error(f'The Google API has returned this error:\n{error.error_details}')
                     return error
 
             self.clear_bank()
@@ -641,11 +662,11 @@ class TabBank(ttk.Frame):
                     # then remove index from log_data to keep it up
                     # to date
                     print(request_body)
-                    sheets.delete_rows(request_body)
+                    self._sheets.delete_rows(request_body)
                     log_data.pop(index)
                 except HttpError as error:
                     print(f"A delete error occurred: {error}")
-                    display_error(f'The Google API has returned this error:\n{error.error_details}')
+                    self._helper.display_error(f'The Google API has returned this error:\n{error.error_details}')
 
             # decrement index, since this is a reversed loop
             index -= 1
@@ -673,7 +694,7 @@ class TabBank(ttk.Frame):
         # from spell/item bank to sky bank
         match self.get_bank_type():
             case "Item Bank":
-                log_data = sheets.read_values(ITEM_BANK, "FORMATTED_VALUE")
+                log_data = self._sheets.read_values(self.ITEM_BANK, "FORMATTED_VALUE")
                 qty_col = 3
             case "Sky Bank":
                 log_data = self.get_sky_droppables()
@@ -682,7 +703,7 @@ class TabBank(ttk.Frame):
             case _:
                 # if spell bank, return result of read_values to syncing algorithm to prune
                 # spell bank tab of spells that no longer exist on mules
-                log_data = self.sync_spells(sheets.read_values(SPELL_BANK, "FORMATTED_VALUE"),
+                log_data = self.sync_spells(self._sheets.read_values(self.SPELL_BANK, "FORMATTED_VALUE"),
                                             sheet_data)
                 qty_col = 3
 
@@ -830,7 +851,7 @@ class TabBank(ttk.Frame):
         if len(self.get_bank_sheet()) > 0:
             return True
         else:
-            display_error(SAVE_BANK_ERROR)
+            self._helper.display_error(self.SAVE_BANK_ERROR)
             return False
 
     def validate_import(self):
@@ -842,5 +863,5 @@ class TabBank(ttk.Frame):
         if self.get_bank_mule() in self.get_bank_mule_list():
             return True
         else:
-            display_error(MULE_SELECTION_ERROR)
+            self._helper.display_error(self.MULE_SELECTION_ERROR)
             return False

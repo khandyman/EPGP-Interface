@@ -4,6 +4,7 @@ import ttkbootstrap as ttk
 import os.path
 import sys
 
+# from main import ep_tab, bank_tab
 from classes.Helper import Helper
 
 class TabConfig(ttk.Frame):
@@ -13,14 +14,12 @@ class TabConfig(ttk.Frame):
     #   as the application
     # - Changing and saving the current window theme
 
-    def __init__(self, parent, ep_tab, bank_tab):
+    def __init__(self, parent):
         super().__init__(parent)
 
         # ----- class members -----
         self._helper = Helper()
         self._app = parent
-        self._ep_tab = ep_tab
-        self._bank_tab = bank_tab
 
         self.CONFIG_PATH = "config"
         self.NO_LOG_ERROR = "Please choose a log file to continue."
@@ -41,7 +40,7 @@ class TabConfig(ttk.Frame):
 
         self.create_widgets()
         # Read in the log file path at startup
-        self.import_config(True)
+        # self.import_config(True)
 
     # ----- getters -----
     def get_log_file(self):
@@ -231,10 +230,11 @@ class TabConfig(ttk.Frame):
         # file and updates the ep tab drop down
         # Parameters: none
         # Return: none
+        from main import ep_tab
 
         if initial is False:
-            self._ep_tab.look_for_raids(initial)
-            self._ep_tab.clear_ep()
+            ep_tab.look_for_raids(initial)
+            ep_tab.clear_ep()
 
     def write_config(self):
         # This function writes log and mule file
@@ -266,9 +266,10 @@ class TabConfig(ttk.Frame):
         # then updates config with current list of mules
         # Parameters:  self (inherit from TabConfig parent)
         # Return: none
+        from main import bank_tab
 
         self.set_mule_list('delete', tk.ANCHOR)
-        self._bank_tab.set_bank_mule_combo()
+        bank_tab.set_bank_mule_combo()
         self.write_config()
 
     def add_mule(self):
@@ -276,6 +277,7 @@ class TabConfig(ttk.Frame):
         # then updates config with current list of mules
         # Parameters:  self (inherit from TabConfig parent)
         # Return: none
+        from main import bank_tab
 
         file_path = filedialog.askopenfilename(title="Select Mule Inventory File",
                                                filetypes=[("Text files", "*.txt")])
@@ -287,7 +289,7 @@ class TabConfig(ttk.Frame):
                 # update drop down on bank tab, and write
                 # to config
                 self.set_mule_list('insert', file_path)
-                self._bank_tab.set_bank_mule_combo()
+                bank_tab.set_bank_mule_combo()
                 self.write_config()
 
                 return True

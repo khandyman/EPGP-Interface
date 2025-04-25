@@ -2,7 +2,7 @@ import tkinter as tk
 import ttkbootstrap as ttk
 import platform
 
-from classes.GoogleSheets import GoogleSheets
+# from classes.GoogleSheets import GoogleSheets
 from classes.AutocompleteCombobox import AutocompleteCombobox
 
 class ListFrame(ttk.Frame):
@@ -12,11 +12,11 @@ class ListFrame(ttk.Frame):
     # Modified by Timothy Wise for use with Seekers of Souls' EPGP loot
     # system on the Project Quarm emulated Everquest server
 
-    def __init__(self, parent, num_rows):
+    def __init__(self, parent, sheets, num_rows):
         super().__init__(master=parent)
         self.pack(expand=True, fill='both')
 
-        self._sheets = GoogleSheets()
+        self._sheets = sheets
 
         # ----- widget data -----
         self._num_rows = num_rows

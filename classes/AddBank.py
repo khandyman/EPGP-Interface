@@ -1,11 +1,15 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 
+# from main import config_tab
+from classes.AutocompleteCombobox import AutocompleteCombobox
+from classes.Helper import Helper
+
 class AddBank(tk.Toplevel):
     # This class creates the toplevel entry form
     # to add records manually to the ep sheet
 
-    def __init__(self, parent, data_list):
+    def __init__(self, parent, setup, data_list):
         super().__init__(parent)
 
         # Obtain parent window position and place
@@ -27,6 +31,10 @@ class AddBank(tk.Toplevel):
         self.resizable(False, False)
 
         # Class data members
+        self._helper = Helper()
+        self._bank_tab = parent
+        self._setup = setup
+
         self._entry_frame = ttk.Frame(self)
         self._add_officer = tk.StringVar()
         self._add_mule = tk.StringVar()
@@ -34,6 +42,10 @@ class AddBank(tk.Toplevel):
         self._add_qty = tk.StringVar()
         self._add_notes = tk.StringVar()
         self._add_id = tk.StringVar()
+
+        self.BAD_OFFICER_ERROR = "The officer entered must match the log file selected.\nPlease try again."
+        self.BAD_MULE_ERROR = "The mule entered must match a mule on the Configure tab.\nPlease try again."
+        self.EMPTY_FIELD_ERROR = "All fields must be filled out.\nPlease try again."
 
         # This will either be an empty list or it will
         # contain data the user is trying to edit
@@ -115,7 +127,7 @@ class AddBank(tk.Toplevel):
         add_mule_label = ttk.Label(self._entry_frame, text='Mule', font='Calibri 14')
         add_mule_label.place(x=120, y=10, width=120)
 
-        add_mule_entry = AutocompleteCombobox(self._entry_frame, bank_tab.get_bank_mule_list())
+        add_mule_entry = AutocompleteCombobox(self._entry_frame, self._bank_tab.get_bank_mule_list())
         add_mule_entry.configure(font=('Calibri', 12), height=40, textvariable=self._add_mule)
         add_mule_entry.place(x=120, y=45, width=120)
 
@@ -198,15 +210,15 @@ class AddBank(tk.Toplevel):
             else:
                 # Otherwise, obtain the last row of the ep sheet
                 # so we know where to insert the new data
-                last_row = bank_tab.get_bank_rows()
+                last_row = self._bank_tab.get_bank_rows()
                 # Create the index
                 index = f'A{last_row + 1}'
 
                 # Add a row to the ep sheet and insert
                 # the form items
-                bank_tab.add_bank_row()
+                self._bank_tab.add_bank_row()
 
-            bank_tab.add_bank_item(index, entry_list)
+            self._bank_tab.add_bank_item(index, entry_list)
 
             # Close the toplevel form, returning
             # control to the main window
@@ -215,27 +227,27 @@ class AddBank(tk.Toplevel):
 
     def validate_submit(self):
         if self.get_add_officer() != config_tab.get_officer():
-            display_error(BAD_OFFICER_ERROR)
+            self._helper.display_error(self.BAD_OFFICER_ERROR)
             return False
 
-        if self.get_add_mule() not in bank_tab.get_bank_mule_list():
-            display_error(BAD_MULE_ERROR)
+        if self.get_add_mule() not in self._bank_tab.get_bank_mule_list():
+            self._helper.display_error(self.BAD_MULE_ERROR)
             return False
 
         if len(self.get_add_item()) < 1:
-            display_error(EMPTY_FIELD_ERROR)
+            self._helper.display_error(self.EMPTY_FIELD_ERROR)
             return False
 
         if len(self.get_add_qty()) < 1:
-            display_error(EMPTY_FIELD_ERROR)
+            self._helper.display_error(self.EMPTY_FIELD_ERROR)
             return False
 
         if len(self.get_add_notes()) < 1:
-            display_error(EMPTY_FIELD_ERROR)
+            self._helper.display_error(self.EMPTY_FIELD_ERROR)
             return False
 
         if len(self.get_add_id()) < 1:
-            display_error(EMPTY_FIELD_ERROR)
+            self._helper.display_error(self.EMPTY_FIELD_ERROR)
             return False
 
         return True

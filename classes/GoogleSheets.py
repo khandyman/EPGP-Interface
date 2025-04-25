@@ -11,6 +11,8 @@ from classes.Helper import Helper
 
 class GoogleSheets:
     def __init__(self):
+        self.SCOPES = "https://www.googleapis.com/auth/spreadsheets"
+
         try:
             # class members
             self._service = self.get_service()
@@ -27,7 +29,7 @@ class GoogleSheets:
             self._helper = Helper()
 
             # If modifying these scopes, delete the file token.json.
-            self.SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
             self.SPREADSHEET_ID = "1DJm8BhaaxZlwLea0ZVZcyVUhMvQ8_VcmIyahBijajjg"  # official EPGP log
 
             self.RAW_LEVELS = "EP Log!F3:F"

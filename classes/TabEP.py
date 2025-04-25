@@ -1,5 +1,17 @@
+from file_read_backwards import FileReadBackwards
+from googleapiclient.errors import HttpError
+from datetime import datetime
+import ttkbootstrap.dialogs
+import tkinter.messagebox
 import tkinter as tk
 import ttkbootstrap as ttk
+import tksheet
+import requests
+
+# from main import sheets, setup
+from classes.AutocompleteCombobox import AutocompleteCombobox
+from classes.AddEP import AddEP
+from classes.Helper import Helper
 
 class TabEP(ttk.Frame):
     # This class creates the EP Tab, responsible for:
@@ -7,13 +19,16 @@ class TabEP(ttk.Frame):
     # - Sending attendance data to the EPGP Log
     # - Manual input is also available
 
-    def __init__(self, parent):
+    def __init__(self, parent, sheets, setup):
         super().__init__(parent)
         self.parent = parent
 
         # Notebook.__init__(app)
 
         # ----- private class members -----
+        self._helper = Helper()
+        self._sheets = sheets
+        self._setup = setup
 
         # Two variables for the time entry widget,
         # one is a tkinter StringVar to access the
@@ -32,6 +47,19 @@ class TabEP(ttk.Frame):
         # build and configure the widget layout
         self.create_widgets()
         self.set_ep_grid()
+
+        # A1 notation ranges for Google Sheets API interactions
+        self.EP_LOG_RANGE = "EP Log!B3:B"
+
+        self.NO_VOICE_ERROR = "No users found in Guild-Meeting channel"
+        self.RAID_FOUND_ERROR = 'No raids found in log file. You will not be able to retrieve EP data.'
+        self.EMPTY_EP_ERROR = 'Please enter at least one full line of data in the EP sheet and try again.'
+        self.TYPE_EP_ERROR = 'Please select a point type and try again.'
+        self.SPELLING_EP_ERROR = '] not found in character list. \nAre you sure you want to continue?'
+        self.SCAN_ERROR = 'Please select an available time stamp'
+
+        #self.look_for_raids(True)
+        self.clear_ep()
 
     # ----- public class member getters -----
     def get_ep_time(self):
@@ -81,7 +109,7 @@ class TabEP(ttk.Frame):
         self._ep_time_combo.configure(font=('Calibri', 12), height=40, textvariable=self._ep_time, values=[])
         self._ep_time_combo.place(x=110, y=80, width=360)
 
-        ep_type_entry = AutocompleteCombobox(self, sheets.get_effort_points())
+        ep_type_entry = AutocompleteCombobox(self, self._sheets.get_effort_points())
         ep_type_entry.configure(font=('Calibri', 12), height=40, textvariable=self._ep_type)
         ep_type_entry.place(x=590, y=80, width=170)
 
@@ -152,7 +180,7 @@ class TabEP(ttk.Frame):
         data_list = [curr_month, curr_date, curr_time, curr_year, curr_level,
                      curr_class, curr_name, curr_race, curr_row]
 
-        AddEP(self, data_list)
+        AddEP(self, self._sheets, data_list)
 
     # ----- class functions -----
     def set_ep_grid(self):
@@ -232,7 +260,7 @@ class TabEP(ttk.Frame):
             # is just the point type values for inserting
             # into column R on the EP Log tab
             point_list = []
-            point_type = ep_tab.get_ep_type()
+            point_type = self.get_ep_type()
 
             # Loop through each line in the guild list,
             # appending the point type each time
@@ -241,7 +269,7 @@ class TabEP(ttk.Frame):
 
             # Obtain the insertion point for the EP Log;
             # i.e., the first empty cell in column B
-            row_count = sheets.count_rows(EP_LOG_RANGE, 3)
+            row_count = self._sheets.count_rows(self.EP_LOG_RANGE, 3)
 
             # Set up a JSON style body object for the
             # batch update in the append values function
@@ -263,11 +291,11 @@ class TabEP(ttk.Frame):
 
             try:
                 # send the HTTP write request to the Sheets API
-                sheets.append_values(range_body_values)
+                self._sheets.append_values(range_body_values)
 
             except HttpError as error:
                 print(f"An error occurred: {error}")
-                display_error(f'The Google API has returned this error:\n{error.error_details}')
+                self._helper.display_error(f'The Google API has returned this error:\n{error.error_details}')
                 return error
 
             self.clear_ep()
@@ -313,10 +341,10 @@ class TabEP(ttk.Frame):
                 curr_date = time.strftime('%#d')
                 curr_time = time.strftime('%H:%M:%S')
                 curr_year = time.strftime('%Y')
-                curr_level = sheets.get_player_level(key)
-                curr_race = sheets.get_player_race(key)
+                curr_level = self._sheets.get_player_level(key)
+                curr_race = self._sheets.get_player_race(key)
                 curr_name = key
-                curr_class = sheets.get_player_class(key)
+                curr_class = self._sheets.get_player_class(key)
 
                 curr_member = [curr_month, curr_date, curr_time, curr_year, curr_level, curr_class, curr_name]
 
@@ -335,12 +363,11 @@ class TabEP(ttk.Frame):
 
                 self.set_ep_type('Meeting')
         else:
-            display_error(NO_VOICE_ERROR)
+            self._helper.display_error(self.NO_VOICE_ERROR)
 
         return guild_list
 
-    @staticmethod
-    def read_log(read_month, read_date, read_time):
+    def read_log(self, read_month, read_date, read_time):
         # This function runs an algorithm to locate
         # log file lines that are part of a /who guild
         # in game command, and formats them for importing
@@ -353,7 +380,7 @@ class TabEP(ttk.Frame):
         found_line = False  # A flag to indicate if an appropriate line has been found
 
         # Read the log file from the bottom up to save time
-        with (FileReadBackwards(config_tab.get_log_file(), encoding="utf-8") as frb):
+        with (FileReadBackwards(self._setup.get_log_file(), encoding="utf-8") as frb):
             for line in frb:
                 # If the guild_tag is on the line, plus the month/date/time match what
                 # the user specified, then a match is found """
@@ -454,12 +481,12 @@ class TabEP(ttk.Frame):
         curr_raid_count = self.get_ep_combo_values()
         self.set_ep_combo_values(available_raids)
 
-        if config_tab.get_log_file():
+        if self._setup.get_log_file():
             available_raids = self.find_times()
 
             if not available_raids:
                 tkinter.messagebox.showinfo('No Raids Found',
-                                            RAID_FOUND_ERROR)
+                                            self.RAID_FOUND_ERROR)
                 self.set_ep_combo_values(['Guild Meeting'])
             else:
                 # If the user has clicked 'Refresh Raids' this
@@ -494,8 +521,7 @@ class TabEP(ttk.Frame):
                 available_raids.append('Guild Meeting')
                 self.set_ep_combo_values(available_raids)
 
-    @staticmethod
-    def find_times():
+    def find_times(self):
         # This function runs a different algorithm to scan
         # user's log file and find instances of /who guild
         # that match raid parameters (i.e., not a /who all guild,
@@ -506,7 +532,7 @@ class TabEP(ttk.Frame):
         # Parameters: none
         # Return: found_stamps: list
 
-        player_log = config_tab.get_log_file()
+        player_log = self._setup.get_log_file()
         # Multiple strings for searching for the phrase
         # "There are <num> players in", but not including
         # the word "EverQuest"; that would indicate a
@@ -626,7 +652,7 @@ class TabEP(ttk.Frame):
         # Parameters: self (inherit from TabEP parent)
         # Return: none
 
-        AddEP(self, [])
+        AddEP(self, self._sheets, [])
 
     def validate_ep_entry(self):
         # This function provides the primary validation for the
@@ -640,18 +666,18 @@ class TabEP(ttk.Frame):
 
         # If there is not at least one line of data return false
         if len(sheet_values) == 0:
-            display_error(EMPTY_EP_ERROR)
+            self._helper.display_error(self.EMPTY_EP_ERROR)
             return False
         else:
             # If less than 8 items are in the first line return
             # false; this simulates the user clicking
             # 'manual entry' and then entering nothing
             if len(sheet_values[0][:15]) < 7:
-                display_error(EMPTY_EP_ERROR)
+                self._helper.display_error(self.EMPTY_EP_ERROR)
                 return False
             # If the user has not selected an EP type return false
             elif self._ep_type.get() == '':
-                display_error(TYPE_EP_ERROR)
+                self._helper.display_error(self.TYPE_EP_ERROR)
                 return False
             # If all those boxes have been ticked, now we verify
             # that all player names entered match entries on the
@@ -663,7 +689,7 @@ class TabEP(ttk.Frame):
                     found_name = False
 
                     # Loop through the player list
-                    for name in sheets.get_player_list():
+                    for name in self._sheets.get_player_list():
                         # If a match is found, flag it True then exit
                         # the loop
                         if name == row[6]:  # noqa
@@ -691,16 +717,16 @@ class TabEP(ttk.Frame):
                 if missing_flag is True:
                     names_to_strings = ', '.join(missing_names)     # this converts the name list into a string
                     confirm = ttk.dialogs.Messagebox.yesno(
-                        f"[ {names_to_strings} {SPELLING_EP_ERROR}",
+                        f"[ {names_to_strings} {self.SPELLING_EP_ERROR}",
                         "Confirm Name Entry", alert=True ) # noqa
 
                     # if player clicked yes
                     if confirm == 'Yes':
                         for name in missing_names:
                             # update master player list
-                            sheets.add_player(name)
+                            self._sheets.add_player(name)
                             # update master player dictionary
-                            sheets.update_dict(name, missing_names[name]['level'],
+                            self._sheets.update_dict(name, missing_names[name]['level'],
                                                missing_names[name]['class'], missing_names[name]['race'])
 
                         return True
@@ -720,7 +746,7 @@ class TabEP(ttk.Frame):
         # Check to verify that user has entered something
         # in the time stamps combobox; if not return false
         if time_entered == '':
-            display_error(SCAN_ERROR)
+            self._helper.display_error(self.SCAN_ERROR)
             return False
         # Check that user entry matches one of the available
         # time stamps; if not return false
@@ -735,5 +761,5 @@ class TabEP(ttk.Frame):
 
             # If code logic makes it this far then time stamp
             # match was never found; return false
-            display_error(SCAN_ERROR)
+            self._helper.display_error(self.SCAN_ERROR)
             return False

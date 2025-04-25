@@ -1,5 +1,13 @@
+from googleapiclient.errors import HttpError
 import tkinter as tk
 import ttkbootstrap as ttk
+import ttkbootstrap.dialogs
+from datetime import datetime
+
+# from main import sheets
+from classes.AutocompleteCombobox import AutocompleteCombobox
+from classes.ListFrame import ListFrame
+from classes.Helper import Helper
 
 class TabGP(ttk.Frame):
     # This class creates the GP Tab, responsible for:
@@ -9,10 +17,13 @@ class TabGP(ttk.Frame):
     #   the winner
     # - Entering loot items won and writing the data to the GP Log tab
 
-    def __init__(self, parent):
+    def __init__(self, parent, sheets):
         super().__init__(parent)
 
         # ----- class members -----
+        self._helper = Helper()
+        self._sheets = sheets
+
         self._gp_date = tk.StringVar()
         self._gp_name = tk.StringVar()
         self._gp_loot = tk.StringVar()
@@ -24,6 +35,17 @@ class TabGP(ttk.Frame):
         # Custom class to create the scrolling canvas
         # frame that contains the get priority bidders
         self._list_frame = self.create_list_frame()
+
+        # A1 notation ranges for Google Sheets API interactions
+        self.GP_LOG_RANGE = "GP Log!C2:C"
+        self.PRIORITY_TYPE_RANGE = "EP Log!R3:R"
+        self.LOOT_WINNER_RANGE = "Get Priority!G4:I4"
+        self.GET_PRIORITY_RANGE = "Get Priority!E3:E"
+
+        self.ENTER_GP_ERROR = 'Please enter a date, character, loot and gear level.'
+        self.FIND_WINNER_ERROR = 'Please open bidding and enter at least two characters'
+        self.COPY_WINNER_ERROR = 'Please find a winner first'
+        self.READ_WINNER_ERROR = 'Problem reading winner from Get Priority tab. Did you enter any alts by mistake?'
 
         self.configure(width=880, height=595)
         self.place(x=0, y=0)
@@ -99,7 +121,7 @@ class TabGP(ttk.Frame):
         # Parameters: self (inherit from TabGP parent)
         # Return: list_frame - instance of ListFrame class
         priority_frame = ttk.Frame(self)
-        list_frame = ListFrame(priority_frame, sheets.get_priority_rows())
+        list_frame = ListFrame(priority_frame, self._sheets, self._sheets.get_priority_rows())
         priority_frame.place(x=20, y=80, width=540, height=250)
 
         return list_frame
@@ -131,15 +153,15 @@ class TabGP(ttk.Frame):
         priority_level_label = ttk.Label(self, text='Gear Level')
         priority_level_label.place(x=620, y=210, width=150, height=40)
 
-        priority_winner_text = ttk.Entry(self, font='Calibri 12', state=DISABLED, foreground="#A9BDBD",
+        priority_winner_text = ttk.Entry(self, font='Calibri 12', state=tk.DISABLED, foreground="#A9BDBD",
                                          textvariable=self._pr_winner)
         priority_winner_text.place(x=620, y=95, width=150, height=40)
 
-        priority_ratio_text = ttk.Entry(self, font='Calibri 12', state=DISABLED, foreground="#A9BDBD",
+        priority_ratio_text = ttk.Entry(self, font='Calibri 12', state=tk.DISABLED, foreground="#A9BDBD",
                                         textvariable=self._pr_ratio)
         priority_ratio_text.place(x=620, y=170, width=90, height=40)
 
-        priority_level_text = ttk.Entry(self, font='Calibri 12', state=DISABLED, foreground="#A9BDBD",
+        priority_level_text = ttk.Entry(self, font='Calibri 12', state=tk.DISABLED, foreground="#A9BDBD",
                                         textvariable=self._pr_gear)
         priority_level_text.place(x=620, y=245, width=150, height=40)
 
@@ -182,7 +204,7 @@ class TabGP(ttk.Frame):
         gp_date_entry.bind("<Button-1>", self.grab_date)
         gp_date_entry.place(x=20, y=480, width=120)
 
-        gp_character_entry = AutocompleteCombobox(self, sheets.get_player_list())
+        gp_character_entry = AutocompleteCombobox(self, self._sheets.get_player_list())
         gp_character_entry.configure(font=('Calibri', 12), height=40, textvariable=self._gp_name)
         gp_character_entry.place(x=155, y=480, width=160)
 
@@ -190,7 +212,7 @@ class TabGP(ttk.Frame):
         self._gp_loot_entry.configure(font=('Calibri', 12), height=40, textvariable=self._gp_loot)
         self._gp_loot_entry.place(x=330, y=480, width=315)
 
-        gp_level_entry = AutocompleteCombobox(self, sheets.get_gear_points())
+        gp_level_entry = AutocompleteCombobox(self, self._sheets.get_gear_points())
         gp_level_entry.configure(font=('Calibri', 12), height=40, textvariable=self._gp_level)
         gp_level_entry.place(x=660, y=480, width=200)
 
@@ -292,7 +314,7 @@ class TabGP(ttk.Frame):
 
                 # Obtain the insertion point for the GP LOg;
                 # i.e., the first empty cell in column C
-                row_count = sheets.count_rows(GP_LOG_RANGE, 2)
+                row_count = self._sheets.count_rows(self.GP_LOG_RANGE, 2)
 
                 # Set up a JSON style body object for the
                 # batch update in the append values function
@@ -307,11 +329,11 @@ class TabGP(ttk.Frame):
 
                 try:
                     # Send the HTTP update request
-                    sheets.append_values(value_range)
+                    self._sheets.append_values(value_range)
 
                 except HttpError as error:
                     print(f"An error occurred: {error.error_details}")
-                    display_error(f'The Google API has returned this error:\n{error.error_details}')
+                    self._helper.display_error(f'The Google API has returned this error:\n{error.error_details}')
                     return error
 
                 # Clear out the GP and Get Priority data
@@ -320,7 +342,7 @@ class TabGP(ttk.Frame):
         # The only time an error pop-up is displayed
         # outside a validation function
         else:
-            display_error(ENTER_GP_ERROR)
+            self._helper.display_error(self.ENTER_GP_ERROR)
 
     def look_for_duplicates(self):
         # This function checks for a matching item name
@@ -337,7 +359,7 @@ class TabGP(ttk.Frame):
 
         # Loop through the item list, which was
         # already read from the EPGP Log at startup
-        for item in sheets.get_loot_names():
+        for item in self._sheets.get_loot_names():
             if item == item_entry:
                 item_found = True
                 break
@@ -354,8 +376,8 @@ class TabGP(ttk.Frame):
             # If the user clicks yes, append the new item
             # to the loot names list and return true
             if confirm == 'Yes':
-                sheets.update_loot_names(item_entry)
-                self.set_gp_loot_entry(sheets.get_loot_names())
+                self._sheets.update_loot_names(item_entry)
+                self.set_gp_loot_entry(self._sheets.get_loot_names())
                 return True
             # Otherwise, return false
             else:
@@ -370,7 +392,7 @@ class TabGP(ttk.Frame):
         # Parameters: self (inherit from TabGP parent)
         # Return: possible Error
 
-        sheets.clear_values()
+        self._sheets.clear_values()
 
         items = []
         values = []
@@ -426,11 +448,11 @@ class TabGP(ttk.Frame):
 
         try:
             # Send the HTTP request to the EPGP Log
-            sheets.append_values(range_body_values)
+            self._sheets.append_values(range_body_values)
 
         except HttpError as error:
             print(f"An error occurred: {error}")
-            display_error(f'The Google API has returned this error:\n{error.error_details}')
+            self._helper.display_error(f'The Google API has returned this error:\n{error.error_details}')
             return error
 
     def read_loot_results(self):
@@ -443,8 +465,8 @@ class TabGP(ttk.Frame):
         # Return: possible Error
 
         try:
-            winner = sheets.read_values(LOOT_WINNER_RANGE, 'FORMATTED_VALUE')
-            gl_pr = sheets.read_values(GET_PRIORITY_RANGE, 'FORMATTED_VALUE')
+            winner = self._sheets.read_values(self.LOOT_WINNER_RANGE, 'FORMATTED_VALUE')
+            gl_pr = self._sheets.read_values(self.GET_PRIORITY_RANGE, 'FORMATTED_VALUE')
             num_bidders = len(gl_pr)
             index = 0
 
@@ -475,7 +497,7 @@ class TabGP(ttk.Frame):
                 self.set_pr_ratio(winner[0][0])
                 self.set_pr_gear(winner[0][2])
             else:
-                display_error(READ_WINNER_ERROR)
+                self._helper.display_error(self.READ_WINNER_ERROR)
 
         except HttpError as err:
             print(err)
@@ -491,7 +513,7 @@ class TabGP(ttk.Frame):
             self.write_loot_contestants()
             self.read_loot_results()
         else:
-            display_error(FIND_WINNER_ERROR)
+            self._helper.display_error(self.FIND_WINNER_ERROR)
 
     def copy_winner(self):
         # This function wraps the get priority
@@ -505,7 +527,7 @@ class TabGP(ttk.Frame):
             self.set_gp_name(self.get_pr_winner())
             self.set_gp_level(self.get_pr_gear())
         else:
-            display_error(COPY_WINNER_ERROR)
+            self._helper.display_error(self.COPY_WINNER_ERROR)
 
     def validate_gp(self):
         # This function provides validation for the
@@ -540,7 +562,7 @@ class TabGP(ttk.Frame):
                 character = value[0].get()
 
                 # Then compare it with the player list
-                for item in sheets.get_player_list():
+                for item in self._sheets.get_player_list():
                     # If a match is found set the flag to true
                     if item == character:
                         char_found = True
@@ -549,7 +571,7 @@ class TabGP(ttk.Frame):
             if str(key[:1]) == '2':
                 gear_level = value[0].get()
 
-                for item in sheets.get_bid_levels():
+                for item in self._sheets.get_bid_levels():
                     if item == gear_level:
                         level_found = True
 

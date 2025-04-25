@@ -1,12 +1,17 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 from datetime import datetime
+import re
+
+from classes.AutocompleteCombobox import AutocompleteCombobox
+# from classes.GoogleSheets import GoogleSheets
+from classes.Helper import Helper
 
 class AddEP(tk.Toplevel):
     # This class creates the toplevel entry form
     # to add records manually to the ep sheet
 
-    def __init__(self, parent, data_list):
+    def __init__(self, parent, sheets, data_list):
         super().__init__(parent)
 
         # Obtain parent window position and place
@@ -28,6 +33,10 @@ class AddEP(tk.Toplevel):
         self.resizable(False, False)
 
         # Class data members
+        self._ep_tab = parent
+        self._sheets = sheets
+        self._helper = Helper()
+
         self._entry_frame = ttk.Frame(self)
         self._add_month = tk.StringVar()
         self._add_date = tk.StringVar()
@@ -40,6 +49,13 @@ class AddEP(tk.Toplevel):
         # This will either be an empty list or it will
         # contain data the user is trying to edit
         self._data_list = data_list
+
+        # hard-coded lists
+        self.MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        self.CLASSES = ['Bard', 'Beastlord', 'Cleric', 'Druid', 'Enchanter', 'Magician', 'Monk', 'Necromancer',
+                   'Paladin', 'Ranger', 'Rogue', 'Shadow Knight', 'Shaman', 'Warrior', 'Wizard', 'Unknown']
+        self.RACES = ['Barbarian', 'Dark Elf', 'Dwarf', 'Erudite', 'Froglok', 'Gnome', 'Half Elf', 'Halfling', 'High Elf',
+                 'Human', 'Iksar', 'Ogre', 'Troll', 'Vah Shir', 'Wood Elf', 'Unknown']
 
         self.populate_fields(data_list)
         self.create_widgets()
@@ -119,11 +135,11 @@ class AddEP(tk.Toplevel):
 
             # If already data in ep sheet, match month, date,
             # time, and year to existing data
-            if len(ep_tab.get_ep_sheet()) > 0:
-                self.set_add_month(ep_tab.get_ep_sheet_cell("A1"))
-                self.set_add_date(ep_tab.get_ep_sheet_cell("B1"))
-                self.set_add_time(ep_tab.get_ep_sheet_cell("C1"))
-                self.set_add_year(ep_tab.get_ep_sheet_cell("D1"))
+            if len(self._ep_tab.get_ep_sheet()) > 0:
+                self.set_add_month(self._ep_tab.get_ep_sheet_cell("A1"))
+                self.set_add_date(self._ep_tab.get_ep_sheet_cell("B1"))
+                self.set_add_time(self._ep_tab.get_ep_sheet_cell("C1"))
+                self.set_add_year(self._ep_tab.get_ep_sheet_cell("D1"))
             else:
                 # Use date/time formatting to make sure data
                 # matches EPGP Log
@@ -134,7 +150,7 @@ class AddEP(tk.Toplevel):
 
             # Just set a default level of 50; user will have
             # to modify if needed
-            self.set_add_level(sheets.get_max_level())
+            self.set_add_level(self._sheets.get_max_level())
 
     def create_widgets(self):
         # This function lays out the widgets on the form
@@ -146,7 +162,7 @@ class AddEP(tk.Toplevel):
         add_month_label = ttk.Label(self._entry_frame, text='Month', font='Calibri 14')
         add_month_label.place(x=10, y=10, width=70)
 
-        add_month_entry = AutocompleteCombobox(self._entry_frame, MONTHS)
+        add_month_entry = AutocompleteCombobox(self._entry_frame, self.MONTHS)
         add_month_entry.configure(font=('Calibri', 12), height=40, textvariable=self._add_month)
         add_month_entry.place(x=10, y=45, width=70)
 
@@ -183,14 +199,14 @@ class AddEP(tk.Toplevel):
         add_class_label = ttk.Label(self._entry_frame, text='Class', font='Calibri 14')
         add_class_label.place(x=10, y=90, width=150)
 
-        add_class_entry = AutocompleteCombobox(self._entry_frame, CLASSES)
+        add_class_entry = AutocompleteCombobox(self._entry_frame, self.CLASSES)
         add_class_entry.configure(font=('Calibri', 12), height=40, textvariable=self._add_class)
         add_class_entry.place(x=10, y=125, width=150)
 
         add_name_label = ttk.Label(self._entry_frame, text='Name', font='Calibri 14')
         add_name_label.place(x=170, y=90, width=160)
 
-        add_name_entry = AutocompleteCombobox(self._entry_frame, sheets.get_player_list())
+        add_name_entry = AutocompleteCombobox(self._entry_frame, self._sheets.get_player_list())
         add_name_entry.configure(font=('Calibri', 12), height=40, textvariable=self._add_name)
         add_name_entry.bind("<<ComboboxSelected>>", self.get_player_data)
         add_name_entry.bind("<FocusOut>", self.get_player_data)
@@ -200,7 +216,7 @@ class AddEP(tk.Toplevel):
         add_race_label = ttk.Label(self._entry_frame, text='Race', font='Calibri 14')
         add_race_label.place(x=340, y=90, width=130)
 
-        add_race_entry = AutocompleteCombobox(self._entry_frame, RACES)
+        add_race_entry = AutocompleteCombobox(self._entry_frame, self.RACES)
         add_race_entry.configure(font=('Calibri', 12), height=40, textvariable=self._add_race)
         add_race_entry.place(x=340, y=125, width=130)
 
@@ -220,9 +236,9 @@ class AddEP(tk.Toplevel):
         #             event (object generated by event)
         # Return: none
         if self.validate_name():
-            self.set_add_level(sheets.get_player_level(self.get_add_name()))
-            self.set_add_race(sheets.get_player_race(self.get_add_name()))
-            self.set_add_class(sheets.get_player_class(self.get_add_name()))
+            self.set_add_level(self._sheets.get_player_level(self.get_add_name()))
+            self.set_add_race(self._sheets.get_player_race(self.get_add_name()))
+            self.set_add_class(self._sheets.get_player_class(self.get_add_name()))
 
     def clear_form(self):
         # This function clears out all the
@@ -269,15 +285,15 @@ class AddEP(tk.Toplevel):
             else:
                 # Otherwise, obtain the last row of the ep sheet
                 # so we know where to insert the new data
-                last_row = ep_tab.get_ep_rows()
+                last_row = self._ep_tab.get_ep_rows()
                 # Create the index
                 index = f'A{last_row + 1}'
 
                 # Add a row to the ep sheet and insert
                 # the form items
-                ep_tab.add_ep_row()
+                self._ep_tab.add_ep_row()
 
-            ep_tab.add_ep_item(index, entry_list)
+            self._ep_tab.add_ep_item(index, entry_list)
 
             # Close the toplevel form, returning
             # control to the main window
@@ -290,7 +306,7 @@ class AddEP(tk.Toplevel):
         # is correct, in case the user prematurely
         # leaves the combobox and triggers the FocusOut
         # event
-        for item in sheets.get_player_list():
+        for item in self._sheets.get_player_list():
             if self.get_add_name() == item:
                 return True
 
@@ -300,7 +316,7 @@ class AddEP(tk.Toplevel):
         err_type = ''
         validation_flags = [False, False, False, False, False, False, False, False]
 
-        for item in MONTHS:
+        for item in self.MONTHS:
             if self.get_add_month() == item:
                 validation_flags[0] = True
                 break
@@ -366,17 +382,17 @@ class AddEP(tk.Toplevel):
             case _:
                 class_entered = class_entered
 
-        for item in CLASSES:
+        for item in self.CLASSES:
             if class_entered == item:
                 validation_flags[5] = True
                 break
 
-        for item in sheets.get_player_list():
+        for item in self._sheets.get_player_list():
             if self.get_add_name() == item:
                 validation_flags[6] = True
                 break
 
-        for item in RACES:
+        for item in self.RACES:
             if self.get_add_race() == item:
                 validation_flags[7] = True
                 break
@@ -402,7 +418,7 @@ class AddEP(tk.Toplevel):
 
         for item in validation_flags:
             if item is False:
-                display_error(err_msg)
+                self._helper.display_error(err_msg)
                 return False
 
         return True
