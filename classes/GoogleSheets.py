@@ -162,7 +162,6 @@ class GoogleSheets:
                         if player_level == 'ANONYMOUS':
                             player_level = self.get_max_level()
 
-                        # print(raw_races_extra[counter])
                         player_race = self._helper.strip_garbage(raw_race)
 
                         if (player_race == 'High'

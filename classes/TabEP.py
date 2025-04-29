@@ -1,3 +1,4 @@
+import os
 from file_read_backwards import FileReadBackwards
 from googleapiclient.errors import HttpError
 from datetime import datetime
@@ -6,9 +7,10 @@ import tkinter.messagebox
 import tkinter as tk
 import ttkbootstrap as ttk
 import tksheet
-import requests
+from dotenv import load_dotenv
+import discord
+import asyncio
 
-# from main import sheets, setup
 from classes.AutocompleteCombobox import AutocompleteCombobox
 from classes.AddEP import AddEP
 from classes.Helper import Helper
@@ -22,8 +24,6 @@ class TabEP(ttk.Frame):
     def __init__(self, parent, sheets, setup):
         super().__init__(parent)
         self.parent = parent
-
-        # Notebook.__init__(app)
 
         # ----- private class members -----
         self._helper = Helper()
@@ -40,6 +40,10 @@ class TabEP(ttk.Frame):
         self._ep_time_combo = ttk.Combobox(self)
         self._ep_type = tk.StringVar()
         self._ep_sheet = tksheet.Sheet(self)
+
+        load_dotenv()
+        self.TOKEN = os.getenv('DISCORD_TOKEN')
+        self._meeting_list = []
 
         self.configure(width=880, height=630)
         self.place(x=0, y=0)
@@ -77,6 +81,9 @@ class TabEP(ttk.Frame):
     def get_ep_sheet_cell(self, cell):
         return self._ep_sheet.get_data(cell)
 
+    def get_meeting_list(self):
+        return self._meeting_list
+
     # ----- public class member setters -----
     def set_ep_time(self, ep_value):
         self._ep_time.set(ep_value)
@@ -89,6 +96,9 @@ class TabEP(ttk.Frame):
 
     def set_ep_sheet(self, ep_value):
         self._ep_sheet.set_sheet_data(ep_value)
+
+    def set_meeting_list(self, meeting_list):
+        self._meeting_list = meeting_list
 
     # ----- widget setup -----
     def create_widgets(self):
@@ -114,17 +124,24 @@ class TabEP(ttk.Frame):
         ep_type_entry.place(x=590, y=80, width=170)
 
         ep_header = ('Month', 'Date', 'Time', 'Year', 'Level', 'Class', 'Name', 'Race', '.')
-        (self._ep_sheet.set_header_data(ep_header)
-         .set_sheet_data([]))
+        self._ep_sheet.set_header_data(ep_header)
+        self._ep_sheet.set_sheet_data([])
         # ttkbootstrap to tksheet mappings: table_bg = inputbg, table_fg = inputfg
-        (self._ep_sheet.set_options(table_bg='#073642',
-                                    table_fg='#A9BDBD',
-                                    header_fg='#ffffff',
-                                    index_fg='#ffffff')
-         .font(('Calibri', 12, 'normal')))
-        (self._ep_sheet.set_options(defalt_row_height=30)
-         .height_and_width(width=840, height=368))
-        self._ep_sheet.enable_bindings("single_select", "row_select", "right_click_popup_menu", "rc_delete_row")
+        self._ep_sheet.set_options(
+            table_bg='#073642',
+            table_fg='#A9BDBD',
+            header_fg='#ffffff',
+            index_fg='#ffffff'
+        )
+        self._ep_sheet.font(('Calibri', 12, 'normal'))
+        self._ep_sheet.set_options(defalt_row_height=30)
+        self._ep_sheet.height_and_width(width=840, height=368)
+        self._ep_sheet.enable_bindings(
+            "single_select",
+            "row_select",
+            "right_click_popup_menu",
+            "rc_delete_row"
+        )
 
         # Set a double click to activate the edit record function
         self._ep_sheet.bind('<Double-Button-1>', self.edit_record)
@@ -189,17 +206,16 @@ class TabEP(ttk.Frame):
         # Parameters: self (inherit from TabEP parent)
         # Return: none
 
-        (self._ep_sheet
-         .column_width(column=0, width=60)  # month
-         .column_width(column=1, width=50)  # date
-         .column_width(column=2, width=90)  # time
-         .column_width(column=3, width=60)  # year
-         .column_width(column=4, width=60)  # level
-         .column_width(column=5, width=150) # class
-         .column_width(column=6, width=150) # name
-         .column_width(column=7, width=100)  # race1
-         .column_width(column=8, width=40)  # race2
-         .set_options(default_row_height=30))
+        self._ep_sheet.column_width(column=0, width=60)  # month
+        self._ep_sheet.column_width(column=1, width=50)  # date
+        self._ep_sheet.column_width(column=2, width=90)  # time
+        self._ep_sheet.column_width(column=3, width=60)  # year
+        self._ep_sheet.column_width(column=4, width=60)  # level
+        self._ep_sheet.column_width(column=5, width=150) # class
+        self._ep_sheet.column_width(column=6, width=150) # name
+        self._ep_sheet.column_width(column=7, width=100)  # race1
+        self._ep_sheet.column_width(column=8, width=40)  # race2
+        self._ep_sheet.set_options(default_row_height=30)
 
     def get_ep_rows(self):
         # This function obtains the current
@@ -322,44 +338,89 @@ class TabEP(ttk.Frame):
 
             # Write the read results to the sheet
             self.set_ep_sheet(guild_list)
-            self.set_ep_grid()
+
+        self.set_ep_grid()
+
+    async def get_discord_users(self):
+        client = discord.Client(intents=discord.Intents.all())
+
+        @client.event
+        async def on_ready():
+            # discord_list = []
+            # channel = client.get_all_members()
+
+            # for member in channel:
+            #     if member.bot is False:
+            #         discord_list.append(member)
+            #
+            # self.set_meeting_list(discord_list)
+
+            channel = client.get_channel(1155966760919511176)
+            self.set_meeting_list(channel.members)
+
+            await client.close()
+
+        await client.login(self.TOKEN)
+        await client.connect()
 
     def read_discord(self):
-        # api_url = "http://63.42.237.42:9000/api/Discord/voice-channel-mains/1155966760919511176"    # general
-        api_url = "http://63.42.237.42:9000/api/Discord/voice-channel-mains/1180415001731792966"    # guild-meeting
-        # api_url = "http://63.42.237.42:9000/api/Discord/voice-channel-mains/1155966760919511177"  # group 1
-        # api_url = "http://63.42.237.42:9000/api/Discord/voice-channel-mains/1158172083839311984"    # raid 1
-        response = requests.get(api_url)
-        names = response.json()
+        meeting_list = []
         guild_list = []
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.get_discord_users())
 
-        if len(names) > 0:
-            for key in names:
-                time = datetime.now()
+        for member in self.get_meeting_list():
+            matches = []
+            name = member.display_name
 
-                curr_month = time.strftime('%b')
-                curr_date = time.strftime('%#d')
-                curr_time = time.strftime('%H:%M:%S')
-                curr_year = time.strftime('%Y')
-                curr_level = self._sheets.get_player_level(key)
-                curr_race = self._sheets.get_player_race(key)
-                curr_name = key
-                curr_class = self._sheets.get_player_class(key)
+            if name.find(" ") != -1:
+                matches.append(name.find(" "))
 
-                curr_member = [curr_month, curr_date, curr_time, curr_year, curr_level, curr_class, curr_name]
+            if name.find("(") != -1:
+                matches.append(name.find("("))
 
-                if (curr_race == 'High Elf'
-                        or curr_race == 'Dark Elf'
-                        or curr_race == 'Wood Elf'
-                        or curr_race == 'Half Elf'):
-                    curr_race = curr_race.split()
-                    curr_member.append(curr_race[0])
-                    curr_member.append(curr_race[1])
-                else:
-                    curr_member.append(curr_race)
-                    curr_member.append('')
+            if name.find("/") != -1:
+                matches.append(name.find("/"))
 
-                guild_list.append(curr_member)
+            if name.find(",") != -1:
+                matches.append(name.find(","))
+
+            if len(matches) > 0:
+                match = min(matches)
+
+                if match > -1:
+                    name = name[0:match]
+
+            meeting_list.append(name)
+
+        if len(meeting_list) > 0:
+            for name in meeting_list:
+                if name in self._sheets.get_player_list():
+                    time = datetime.now()
+
+                    curr_month = time.strftime('%b')
+                    curr_date = time.strftime('%#d')
+                    curr_time = time.strftime('%H:%M:%S')
+                    curr_year = time.strftime('%Y')
+                    curr_level = self._sheets.get_player_level(name)
+                    curr_race = self._sheets.get_player_race(name)
+                    curr_name = name
+                    curr_class = self._sheets.get_player_class(name)
+
+                    curr_member = [curr_month, curr_date, curr_time, curr_year, curr_level, curr_class, curr_name]
+
+                    if (curr_race == 'High Elf'
+                            or curr_race == 'Dark Elf'
+                            or curr_race == 'Wood Elf'
+                            or curr_race == 'Half Elf'):
+                        curr_race = curr_race.split()
+                        curr_member.append(curr_race[0])
+                        curr_member.append(curr_race[1])
+                    else:
+                        curr_member.append(curr_race)
+                        curr_member.append('')
+
+                    guild_list.append(curr_member)
 
                 self.set_ep_type('Meeting')
         else:
@@ -381,89 +442,98 @@ class TabEP(ttk.Frame):
 
         # Read the log file from the bottom up to save time
         with (FileReadBackwards(self._setup.get_log_file(), encoding="utf-8") as frb):
-            for line in frb:
-                # If the guild_tag is on the line, plus the month/date/time match what
-                # the user specified, then a match is found """
-                if guild_tag in line:
-                    if read_month in line and read_date in line and read_time in line:
-                        found_line = True
-                        # Remove/replace unwanted formatting from EQ from the line
-                        # This is annoying, but the only way I could find to avoid
-                        # space delimiting causing problems with two word titles
-                        # in the split command below, is to temporarily replace the
-                        # spaces with underscores, perform the split, then convert
-                        # back to spaces
-                        stripped_text = (str(line)
-                                         .replace('[', '')
-                                         .replace(']', '')
-                                         .replace('(', '')
-                                         .replace(')', '')
-                                         .replace('Shadow Knight ', 'Shadow_Knight ')
-                                         .replace('High Priest', 'High_Priest')
-                                         .replace('Arch Mage', 'Arch_Mage')
-                                         .replace('Arch Convoker', 'Arch_Convoker')
-                                         .replace('Grave Lord', 'Grave_Lord')
-                                         .replace('Dread Lord', 'Dread_Lord')
-                                         .replace('Savage Lord', 'Savage_Lord')
-                                         .replace('Feral Lord', 'Feral_Lord')
-                                         .replace('Storm Warden', 'Storm_Warden')
-                                         .replace('Arch Lich', 'Arch_Lich')
-                                         .replace('Lord Protector', 'Lord_Protector')
-                                         .replace('Forest Stalker', 'Forest_Stalker')
-                                         .replace(' AFK ', '')
-                                         .replace('ANONYMOUS', 'ANONYMOUS ANON')
-                                         .replace('Mon ', '')
-                                         .replace('Tue ', '')
-                                         .replace('Wed ', '')
-                                         .replace('Thu ', '')
-                                         .replace('Fri ', '')
-                                         .replace('Sat ', '')
-                                         .replace('Sun ', ''))
+            while True:
+                # try block, essentially just to catch and ignore
+                # Unicode decode errors; not doing anything with
+                # the error, because I don't care about the data;
+                # it's just weird characters in the log file
+                try:
+                    line = frb.readline()
 
-                        # Eliminate everything after the first < in the guild tab,
-                        # then split the line into individual pieces to match the
-                        # ep sheet and the EPGP log
-                        sep = "<"
-                        removed_end_text = stripped_text.split(sep, 1)[0]
-                        list_text = removed_end_text.split()
+                    if not line:
+                        break
 
-                        match list_text[5]:
-                            case 'Shadow_Knight':
-                                list_text[5] = 'Shadow Knight'
-                            case 'Grave_Lord':
-                                list_text[5] = 'Grave Lord'
-                            case 'Dread_Lord':
-                                list_text[5] = 'Dread Lord'
-                            case 'High_Priest':
-                                list_text[5] = 'High Priest'
-                            case 'Arch_Mage':
-                                list_text[5] = 'Arch Mage'
-                            case 'Arch_Convoker':
-                                list_text[5] = 'Arch Convoker'
-                            case 'Savage_Lord':
-                                list_text[5] = 'Savage Lord'
-                            case 'Feral_Lord':
-                                list_text[5] = 'Feral Lord'
-                            case 'Storm_Warden':
-                                list_text[5] = 'Storm Warden'
-                            case 'Arch_Lich':
-                                list_text[5] = 'Arch Lich'
-                            case 'Lord_Protector':
-                                list_text[5] = 'Lord Protector'
-                            case 'Forest_Stalker':
-                                list_text[5] = 'Forest Stalker'
+                    # If the guild_tag is on the line, plus the month/date/time match what
+                    # the user specified, then a match is found """
+                    if guild_tag in line:
+                        if read_month in line and read_date in line and read_time in line:
+                            found_line = True
+                            # Remove/replace unwanted formatting from EQ from the line
+                            # This is annoying, but the only way I could find to avoid
+                            # space delimiting causing problems with two word titles
+                            # in the split command below, is to temporarily replace the
+                            # spaces with underscores, perform the split, then convert
+                            # back to spaces
+                            stripped_text = (str(line)
+                                             .replace('[', '')
+                                             .replace(']', '')
+                                             .replace('(', '')
+                                             .replace(')', '')
+                                             .replace('Shadow Knight ', 'Shadow_Knight ')
+                                             .replace('High Priest', 'High_Priest')
+                                             .replace('Arch Mage', 'Arch_Mage')
+                                             .replace('Arch Convoker', 'Arch_Convoker')
+                                             .replace('Grave Lord', 'Grave_Lord')
+                                             .replace('Dread Lord', 'Dread_Lord')
+                                             .replace('Savage Lord', 'Savage_Lord')
+                                             .replace('Feral Lord', 'Feral_Lord')
+                                             .replace('Storm Warden', 'Storm_Warden')
+                                             .replace('Arch Lich', 'Arch_Lich')
+                                             .replace('Lord Protector', 'Lord_Protector')
+                                             .replace('Forest Stalker', 'Forest_Stalker')
+                                             .replace(' AFK ', '')
+                                             .replace('ANONYMOUS', 'ANONYMOUS ANON')
+                                             .replace('Mon ', '')
+                                             .replace('Tue ', '')
+                                             .replace('Wed ', '')
+                                             .replace('Thu ', '')
+                                             .replace('Fri ', '')
+                                             .replace('Sat ', '')
+                                             .replace('Sun ', ''))
 
-                        guild.append(list_text)
+                            # Eliminate everything after the first < in the guild tab,
+                            # then split the line into individual pieces to match the
+                            # ep sheet and the EPGP log
+                            sep = "<"
+                            removed_end_text = stripped_text.split(sep, 1)[0]
+                            list_text = removed_end_text.split()
 
-                    else:
-                        # If found_line is already true but did not find guild tag and time
-                        # stamp on the line, then we have reached the end of the /who guild
-                        # output, so break out of the loop and return the guild list
-                        if found_line:
-                            break
+                            match list_text[5]:
+                                case 'Shadow_Knight':
+                                    list_text[5] = 'Shadow Knight'
+                                case 'Grave_Lord':
+                                    list_text[5] = 'Grave Lord'
+                                case 'Dread_Lord':
+                                    list_text[5] = 'Dread Lord'
+                                case 'High_Priest':
+                                    list_text[5] = 'High Priest'
+                                case 'Arch_Mage':
+                                    list_text[5] = 'Arch Mage'
+                                case 'Arch_Convoker':
+                                    list_text[5] = 'Arch Convoker'
+                                case 'Savage_Lord':
+                                    list_text[5] = 'Savage Lord'
+                                case 'Feral_Lord':
+                                    list_text[5] = 'Feral Lord'
+                                case 'Storm_Warden':
+                                    list_text[5] = 'Storm Warden'
+                                case 'Arch_Lich':
+                                    list_text[5] = 'Arch Lich'
+                                case 'Lord_Protector':
+                                    list_text[5] = 'Lord Protector'
+                                case 'Forest_Stalker':
+                                    list_text[5] = 'Forest Stalker'
 
-        # for member in guild:
-        #     member[5] = sheets.get_player_class(member[6])
+                            guild.append(list_text)
+
+                        else:
+                            # If found_line is already true but did not find guild tag and time
+                            # stamp on the line, then we have reached the end of the /who guild
+                            # output, so break out of the loop and return the guild list
+                            if found_line:
+                                break
+                except UnicodeDecodeError:
+                    continue
 
         return guild
 

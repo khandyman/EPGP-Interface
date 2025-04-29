@@ -1,0 +1,9 @@
+file_read_backwards
+ttkbootstrap
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+tksheet==7.1.21
+requests
+discord
+python-dotenv

@@ -659,7 +659,7 @@ class TabBank(ttk.Frame):
                     # send a deleteDimension batchUpdate to sheets,
                     # then remove index from log_data to keep it up
                     # to date
-                    print(request_body)
+                    # print(request_body)
                     self._sheets.delete_rows(request_body)
                     log_data.pop(index)
                 except HttpError as error:

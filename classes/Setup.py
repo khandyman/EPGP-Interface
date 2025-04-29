@@ -15,8 +15,10 @@ class Setup:
 
         self.NO_LOG_ERROR = "Please choose a log file to continue."
         self.STUBBORN_LOG_ERROR = "Sorry, you cannot run EPGP without a log file. Bye!"
-        self.BAD_CONFIG_ERROR = "Invalid config file format. Please delete config\nin EPGP-Interface directory and re-launch app."
+        self.BAD_CONFIG_ERROR = ("Invalid config file format. Please delete config\n"
+                                 "in EPGP-Interface directory and re-launch app.")
         self.INVALID_LOG_ERROR = "Please select only EverQuest \'eqlog\' files."
+        self.RAID_FOUND_ERROR = 'No raids found in log file. You will not be able to retrieve EP data.'
 
         self.import_config(True)
 
@@ -49,7 +51,7 @@ class Setup:
 
         if not os.path.isfile(self.CONFIG_PATH):
             tkinter.messagebox.showinfo("No Log Found", self.NO_LOG_ERROR)
-            self.change_log(initial)
+            self.change_log()
 
         # Now check for the 'config' file again; if it still
         # doesn't exist (because user didn't choose a file
@@ -80,7 +82,7 @@ class Setup:
             self.set_mule_list(mule_list)
             # self.refresh_raids(initial)
 
-    def change_log(self, initial):
+    def change_log(self):
         # This function changes a user's log file; it writes
         # the file path to config and sets the UI label
         # Parameters: self (inherit from TabConfig parent)
@@ -111,7 +113,7 @@ class Setup:
 
                 self.write_config()
 
-            return True
+            return file_path
         else:
             return False
 

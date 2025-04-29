@@ -23,7 +23,8 @@ class TabConfig(ttk.Frame):
         self.CONFIG_PATH = "config"
         self.NO_LOG_ERROR = "Please choose a log file to continue."
         self.STUBBORN_LOG_ERROR = "Sorry, you cannot run EPGP without a log file. Bye!"
-        self.BAD_CONFIG_ERROR = "Invalid config file format. Please delete config\nin EPGP-Interface directory and re-launch app."
+        self.BAD_CONFIG_ERROR = ("Invalid config file format. Please delete config\n"
+                                 "in EPGP-Interface directory and re-launch app.")
         self.INVALID_LOG_ERROR = "Please select only EverQuest \'eqlog\' files."
         self.INVALID_MULE_ERROR = "Please select only Zeal \'Inventory.txt\' files."
 
@@ -61,7 +62,9 @@ class TabConfig(ttk.Frame):
     # ----- setters -----
     def set_log_file(self, config_value):
         self._log_file.set(config_value)
-        self._setup.set_log_file(config_value)
+        # self._setup.set_log_file(config_value)
+        # print(f"get_log_file: {self.get_log_file()}")
+
 
     def set_mule_list_box(self, set_type, inventory_file):
         if set_type == 'insert':
@@ -93,7 +96,7 @@ class TabConfig(ttk.Frame):
         log_entry.place(x=20, y=50, width=650, height=40)
 
         change_log_button = ttk.Button(self, text='Change Log', style='primary.Outline.TButton',
-                                       command=lambda: self._setup.change_log(False))
+                                       command=lambda: self.change_log())
         change_log_button.place(x=720, y=122, width=140)
 
         mule_label = ttk.Label(self, text='Mule Outputfiles')
@@ -142,51 +145,20 @@ class TabConfig(ttk.Frame):
         for item in self._setup.get_mule_list():
             self.set_mule_list_box('insert', item)
 
-    # def change_log(self, initial):
-    #     # This function changes a user's log file; it writes
-    #     # the file path to config and sets the UI label
-    #     # Parameters: self (inherit from TabConfig parent)
-    #     # Return: boolean
-    #
-    #     # record original file path in case of error
-    #     old_file = self._setup.get_log_file()
-    #     # Pop an open file dialog
-    #     file_path = filedialog.askopenfilename(title="Select Log File", filetypes=[("Text files", "*.txt")])
-    #
-    #     # if the file path exists
-    #     if file_path:
-    #         # run validation check
-    #         if self.validate_change_log(file_path):
-    #             try:
-    #                 self.set_log_file(file_path)
-    #                 self.refresh_raids(initial)
-    #             except UnicodeDecodeError as error:
-    #                 # if error, set log file to old file path
-    #                 self.set_log_file(old_file)
-    #
-    #                 print(f"An error occurred: {error}")
-    #                 self._helper.display_error(f'An error occurred:\n{error}')
-    #
-    #                 self.refresh_raids(initial)
-    #
-    #                 return error
-    #
-    #             self.write_config()
-    #
-    #         return True
-    #     else:
-    #         return False
+    def change_log(self):
+        new_file = self._setup.change_log()
+        self.set_log_file(new_file)
+        self.refresh_raids()
 
-    def refresh_raids(self, initial):
+    def refresh_raids(self):
         # This function checks for raids in user's log
         # file and updates the ep tab drop down
         # Parameters: none
         # Return: none
-        from main import ep_tab
+        from __main__ import ep_tab
 
-        if initial is False:
-            ep_tab.look_for_raids(initial)
-            ep_tab.clear_ep()
+        ep_tab.look_for_raids(False)
+        ep_tab.clear_ep()
 
     def write_config(self):
         # This function writes log and mule file
