@@ -355,7 +355,11 @@ class TabEP(ttk.Frame):
             #
             # self.set_meeting_list(discord_list)
 
-            channel = client.get_channel(1155966760919511176)
+            channel = client.get_channel(1155966760919511176)   # general voice
+            # channel = client.get_channel(1256393020153135195)   # guild-meeting
+            # channel = client.get_channel(1158172083839311984)   # raid 1
+            # channel = client.get_channel(1155966760919511177)   # group 1
+
             self.set_meeting_list(channel.members)
 
             await client.close()
