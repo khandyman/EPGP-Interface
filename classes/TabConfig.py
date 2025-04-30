@@ -20,6 +20,7 @@ class TabConfig(ttk.Frame):
         self._app = parent
         self._setup = setup
 
+        # pre-formatted error messages
         self.CONFIG_PATH = "config"
         self.NO_LOG_ERROR = "Please choose a log file to continue."
         self.STUBBORN_LOG_ERROR = "Sorry, you cannot run EPGP without a log file. Bye!"
@@ -40,6 +41,7 @@ class TabConfig(ttk.Frame):
         self.place(x=0, y=0)
 
         self.create_widgets()
+
         # Read in the log file path at startup
         self.import_config()
 
@@ -140,14 +142,28 @@ class TabConfig(ttk.Frame):
     # print(self.get_app_theme())
 
     def import_config(self):
+        # This function utilizes the setup class
+        # to read in log_file path and list of mule
+        # names and paths
+        # Parameters: none
+        # Return: none
+
         self.set_log_file(self._setup.get_log_file())
 
         for item in self._setup.get_mule_list():
             self.set_mule_list_box('insert', item)
 
     def change_log(self):
+        # This function utilizes the setup class to
+        # change user's log file preference
+        # Parameters: none
+        # Return: none
+
+        # get the new file path, then update the log_file member
         new_file = self._setup.change_log()
         self.set_log_file(new_file)
+
+        # run the refresh raids function to update the EP tab
         self.refresh_raids()
 
     def refresh_raids(self):
@@ -155,6 +171,7 @@ class TabConfig(ttk.Frame):
         # file and updates the ep tab drop down
         # Parameters: none
         # Return: none
+
         from __main__ import ep_tab
 
         ep_tab.look_for_raids(False)

@@ -7,12 +7,18 @@ import sys
 from classes.Helper import Helper
 
 class Setup:
+    # This class handles set up functions, such as
+    # reading the config file; the class is then passed
+    # to the other clases that need its data, from the
+    # __main__ name space
+
     def __init__(self):
         self.CONFIG_PATH = "config"
         self._log_file = ttk.StringVar()
         self._helper = Helper()
         self._mule_list = []
 
+        # pre-formatted error messages
         self.NO_LOG_ERROR = "Please choose a log file to continue."
         self.STUBBORN_LOG_ERROR = "Sorry, you cannot run EPGP without a log file. Bye!"
         self.BAD_CONFIG_ERROR = ("Invalid config file format. Please delete config\n"
@@ -29,6 +35,8 @@ class Setup:
         return self._mule_list
 
     def get_officer(self):
+        # parse out the name part of the log file path
+        # technically, this will be the mule's name
         log_file = os.path.basename(self.get_log_file())
         officer_name = log_file[6:len(log_file)-12]
 

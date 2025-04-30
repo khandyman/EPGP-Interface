@@ -41,6 +41,8 @@ class TabEP(ttk.Frame):
         self._ep_type = tk.StringVar()
         self._ep_sheet = tksheet.Sheet(self)
 
+        # set up for guild meeting function; load
+        # bot token from env and initialize list
         load_dotenv()
         self.TOKEN = os.getenv('DISCORD_TOKEN')
         self._meeting_list = []
@@ -52,9 +54,11 @@ class TabEP(ttk.Frame):
         self.create_widgets()
         self.set_ep_grid()
 
+        # class constants
         # A1 notation ranges for Google Sheets API interactions
         self.EP_LOG_RANGE = "EP Log!B3:B"
 
+        # pre-formatted error messages
         self.NO_VOICE_ERROR = "No users found in Guild-Meeting channel"
         self.RAID_FOUND_ERROR = 'No raids found in log file. You will not be able to retrieve EP data.'
         self.EMPTY_EP_ERROR = 'Please enter at least one full line of data in the EP sheet and try again.'
@@ -62,7 +66,6 @@ class TabEP(ttk.Frame):
         self.SPELLING_EP_ERROR = '] not found in character list. \nAre you sure you want to continue?'
         self.SCAN_ERROR = 'Please select an available time stamp'
 
-        #self.look_for_raids(True)
         self.clear_ep()
 
     # ----- public class member getters -----
@@ -213,7 +216,7 @@ class TabEP(ttk.Frame):
         self._ep_sheet.column_width(column=4, width=60)  # level
         self._ep_sheet.column_width(column=5, width=150) # class
         self._ep_sheet.column_width(column=6, width=150) # name
-        self._ep_sheet.column_width(column=7, width=100)  # race1
+        self._ep_sheet.column_width(column=7, width=100) # race1
         self._ep_sheet.column_width(column=8, width=40)  # race2
         self._ep_sheet.set_options(default_row_height=30)
 
@@ -342,38 +345,58 @@ class TabEP(ttk.Frame):
         self.set_ep_grid()
 
     async def get_discord_users(self):
+        # This function gets a list of all discord users
+        # currently in the guild-meeting voice channel
+        # Parameters: self (inherit from TabEP parent)
+        # Return: none; but in lieu of a standard return,
+        # _meeting_list class members gets updated
+
+        # create the discord object
         client = discord.Client(intents=discord.Intents.all())
 
         @client.event
         async def on_ready():
-            # discord_list = []
-            # channel = client.get_all_members()
+            # this async function is a sub process that fires
+            # when the "on_ready" event is triggered by discord
 
-            # for member in channel:
-            #     if member.bot is False:
-            #         discord_list.append(member)
-            #
-            # self.set_meeting_list(discord_list)
+            # get the guild-meeting channel as an object
+            channel = client.get_channel(1256393020153135195)  # guild-meeting
 
-            channel = client.get_channel(1155966760919511176)   # general voice
-            # channel = client.get_channel(1256393020153135195)   # guild-meeting
+            # channel = client.get_channel(1155966760919511176)   # general voice
             # channel = client.get_channel(1158172083839311984)   # raid 1
             # channel = client.get_channel(1155966760919511177)   # group 1
 
+            # set the class member to the member list
             self.set_meeting_list(channel.members)
 
+            # close the discord connection
             await client.close()
 
+        # log into the discord server with environment variable token
         await client.login(self.TOKEN)
         await client.connect()
 
     def read_discord(self):
+        # This function uses a list of voice channel
+        # members in discord and formats the list to
+        # be inserted into the EP sheet
+        # Parameters: self (inherit from TabEP parent)
+        # Return: guild_list: list
+
         meeting_list = []
         guild_list = []
+
+        # start an async function to get discord users
+        # auto terminate when complete
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.get_discord_users())
 
+        # now process the discord list we just obtained
         for member in self.get_meeting_list():
+            # this logic parses each discord display name
+            # and separates out the first part of the name
+            # it's looking for spaces, (, /, or , and slicing
+            # off whatever comes before any of those
             matches = []
             name = member.display_name
 
@@ -397,22 +420,30 @@ class TabEP(ttk.Frame):
 
             meeting_list.append(name)
 
+        # now, if there was anyone in the guild-meeting
+        # channel, find them in the EPGP sheet, and format
+        # them to be inserted into the app EP sheet
         if len(meeting_list) > 0:
             for name in meeting_list:
                 if name in self._sheets.get_player_list():
                     time = datetime.now()
 
+                    # format all the date info
                     curr_month = time.strftime('%b')
                     curr_date = time.strftime('%#d')
                     curr_time = time.strftime('%H:%M:%S')
                     curr_year = time.strftime('%Y')
+                    # grab member level, race, and class
                     curr_level = self._sheets.get_player_level(name)
                     curr_race = self._sheets.get_player_race(name)
                     curr_name = name
                     curr_class = self._sheets.get_player_class(name)
 
+                    # convert all member data into a list
                     curr_member = [curr_month, curr_date, curr_time, curr_year, curr_level, curr_class, curr_name]
 
+                    # special log for the two word race names, because
+                    # of the legacy race formatting in the EPGP log
                     if (curr_race == 'High Elf'
                             or curr_race == 'Dark Elf'
                             or curr_race == 'Wood Elf'
@@ -427,6 +458,7 @@ class TabEP(ttk.Frame):
                     guild_list.append(curr_member)
 
                 self.set_ep_type('Meeting')
+        # if no one was in channel, notify user
         else:
             self._helper.display_error(self.NO_VOICE_ERROR)
 

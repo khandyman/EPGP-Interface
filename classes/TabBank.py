@@ -40,12 +40,14 @@ class TabBank(ttk.Frame):
         self._sky_nodrops = []
         self._nodrop_data = []
 
+        # class constants
         # A1 notation ranges for Google Sheets API interactions
         self.ITEM_BANK = "Item Bank!B3:H"
         self.SPELL_BANK = "Spell Bank!B3:G"
         self.SKY_DROPPABLES = "Sky Bank!A3:B"
         self.SKY_NO_DROPS = "Sky Bank!D3:K"
 
+        # pre-formatted error messages
         self.MULE_SELECTION_ERROR = "Please select a mule from the drop down list."
         self.SAVE_BANK_ERROR = "Nothing to save. Please import data first."
 
@@ -659,7 +661,6 @@ class TabBank(ttk.Frame):
                     # send a deleteDimension batchUpdate to sheets,
                     # then remove index from log_data to keep it up
                     # to date
-                    # print(request_body)
                     self._sheets.delete_rows(request_body)
                     log_data.pop(index)
                 except HttpError as error:
