@@ -14,6 +14,7 @@ import asyncio
 from classes.AutocompleteCombobox import AutocompleteCombobox
 from classes.AddEP import AddEP
 from classes.Helper import Helper
+from classes.Database import Database
 
 class TabEP(ttk.Frame):
     # This class creates the EP Tab, responsible for:
@@ -29,6 +30,7 @@ class TabEP(ttk.Frame):
         self._helper = Helper()
         self._sheets = sheets
         self._setup = setup
+        self._database = Database()
 
         # Two variables for the time entry widget,
         # one is a tkinter StringVar to access the
@@ -337,12 +339,56 @@ class TabEP(ttk.Frame):
                 # and the time[2]; then the read_log method is
                 # called to execute the sheets read function
                 stripped_time = self.get_ep_time().split()
-                guild_list = self.read_log(stripped_time[0], stripped_time[1], stripped_time[2])
+                guild_list = self.process_guild_list(
+                    self.read_log(stripped_time[0], stripped_time[1], stripped_time[2])
+                )
 
             # Write the read results to the sheet
             self.set_ep_sheet(guild_list)
 
         self.set_ep_grid()
+
+    def process_guild_list(self, guild_list):
+        for guild_row in guild_list:
+            found_name = False
+
+            for player_row in self._sheets.get_player_list():
+                if guild_row[6] == player_row:
+                    found_name = True
+                    break
+
+            if found_name is False:
+                main = self._database.find_main(guild_row[6])
+
+                if len(main) > 0:
+                    # print(f"{guild_row} - {main} - |{guild_row[5]}|")
+
+                    guild_row[4] = self._sheets.get_player_level(main[0]['char_name'])
+                    guild_row[5] = main[0]['char_class']
+                    guild_row[6] = main[0]['char_name']
+
+                    player_race = main[0]['char_race'].split()[0]
+
+                    if 'Elf' in main[0]['char_race']:
+                        race_two = 'Elf'
+                    else:
+                        race_two = ''
+
+                    if len(guild_row) == 7:
+                        guild_row.append(player_race)
+
+                        if len(race_two) > 0:
+                            guild_row.append(race_two)
+                    else:
+                        guild_row[7] = player_race
+
+                        if len(race_two) > 0:
+                            if len(guild_row) == 8:
+                                guild_row.append(race_two)
+                            else:
+                                guild_row[8] = race_two
+
+        return guild_list
 
     async def get_discord_users(self):
         # This function gets a list of all discord users
