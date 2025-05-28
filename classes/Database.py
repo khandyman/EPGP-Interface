@@ -23,8 +23,8 @@ class Database:
     ################# READ METHODS #################
     def find_main(self, char_name):
         """
-        Get main character for a given discord id
-        :discord_id: discord id to look up
+        Get main character for a given character name
+        :char_name: character name to look up
         :return: results of the select query, in list form
         """
         query = (

@@ -339,6 +339,8 @@ class TabEP(ttk.Frame):
                 # and the time[2]; then the read_log method is
                 # called to execute the sheets read function
                 stripped_time = self.get_ep_time().split()
+                # get guild list from eq log, use that as parameter for
+                # auto converting alts to mains function
                 guild_list = self.process_guild_list(
                     self.read_log(stripped_time[0], stripped_time[1], stripped_time[2])
                 )
@@ -349,42 +351,67 @@ class TabEP(ttk.Frame):
         self.set_ep_grid()
 
     def process_guild_list(self, guild_list):
+        # This function retrieves scans the guild list
+        # from the user's log file and converts alts
+        # to mains
+        # Parameters: self (inherit from TabEP parent)
+        #             guild_list (list of guild members)
+        # Return: guild_list (processed list of guild members)
+
+        # loop through guild list
         for guild_row in guild_list:
+            # reset found flag to false each time
             found_name = False
 
+            # loop through sheets player list
             for player_row in self._sheets.get_player_list():
+                # if a match is found, change flag to True and exit loop
+                # this indicates that the current name on the EP sheet is
+                # a main, so no further processing is needed
                 if guild_row[6] == player_row:
                     found_name = True
                     break
 
+            # if we didn't find a match, we need to find the main
+            # for the current character
             if found_name is False:
+                # use the current name as an input to the database query,
+                # grab the main that matchese the discord_id of the alt
                 main = self._database.find_main(guild_row[6])
 
+                # if the query returned anything
                 if len(main) > 0:
-                    # print(f"{guild_row} - {main} - |{guild_row[5]}|")
-
+                    # edit the level (from the sheets dict), the class, and the name
                     guild_row[4] = self._sheets.get_player_level(main[0]['char_name'])
                     guild_row[5] = main[0]['char_class']
                     guild_row[6] = main[0]['char_name']
 
+                    # grab the race, split if two words
                     player_race = main[0]['char_race'].split()[0]
 
+                    # set up the second word for the race, if applicable
                     if 'Elf' in main[0]['char_race']:
                         race_two = 'Elf'
                     else:
                         race_two = ''
 
+                    # if len = 7, this is an ANON entry, so we
+                    # need to do appends
                     if len(guild_row) == 7:
                         guild_row.append(player_race)
 
                         if len(race_two) > 0:
                             guild_row.append(race_two)
+                    # otherwise, just change field values
                     else:
                         guild_row[7] = player_race
 
+                        # if race_two has a value
                         if len(race_two) > 0:
+                            # if original race was single word, append
                             if len(guild_row) == 8:
                                 guild_row.append(race_two)
+                            # otherwise, edit
                             else:
                                 guild_row[8] = race_two
 
