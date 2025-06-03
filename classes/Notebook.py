@@ -7,7 +7,7 @@ class Notebook(ttk.Window):
         # ----- window setup -----
         super().__init__(themename='solar')
         self.withdraw()
-        self.title('EPGP Interface v2.5')
+        self.title('EPGP Interface v2.51')
         self.geometry('880x630')
         self.resizable(False, False)
         # main window icon
