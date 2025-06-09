@@ -210,6 +210,7 @@ class TabGP(ttk.Frame):
         # gp_loot_entry = AutocompleteCombobox(self, sheets.get_loot_names())
         self._gp_loot_entry.configure(font=('Calibri', 12), height=40, textvariable=self._gp_loot)
         self._gp_loot_entry.place(x=330, y=480, width=315)
+        self._gp_loot_entry.bind("<FocusIn>", self.update_loot_list)
 
         gp_level_entry = AutocompleteCombobox(self, self._sheets.get_gear_points())
         gp_level_entry.configure(font=('Calibri', 12), height=40, textvariable=self._gp_level)
@@ -339,6 +340,21 @@ class TabGP(ttk.Frame):
         # outside a validation function
         else:
             self._helper.display_error(self.ENTER_GP_ERROR)
+
+    def update_loot_list(self, event):
+        # This function updates the loot list; it has
+        # to do this in stages: first, a new loot list
+        # is read from the EPGP Log, then that list is obtained,
+        # then the physical widget's loot list is updated,
+        # and finally, the auto completion list is updated
+        # Parameters: self (inherit from TabGP parent)
+        #             event - unused, but is auto-generated
+        # Return: none
+
+        self._sheets.set_loot_names()
+        new_list = self._sheets.get_loot_names()
+        self.set_gp_loot_entry(new_list)
+        self._gp_loot_entry.set_completion_list(new_list)
 
     def look_for_duplicates(self):
         # This function checks for a matching item name

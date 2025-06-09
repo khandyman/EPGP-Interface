@@ -111,3 +111,6 @@ class AutocompleteCombobox(ttk.Combobox):
         self.configure(values=_hits)
 
         return _hits
+
+    def set_completion_list(self, new_list):
+        self._completion_list = new_list
