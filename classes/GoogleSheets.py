@@ -31,6 +31,7 @@ class GoogleSheets:
             # If modifying these scopes, delete the file token.json.
 
             self.SPREADSHEET_ID = "1DJm8BhaaxZlwLea0ZVZcyVUhMvQ8_VcmIyahBijajjg"  # official EPGP log
+            # self.SPREADSHEET_ID = "1sfUtXiFD2LD2F0KnasLGJazNPQXi66BF99nDgY-4szI"  # test copy
             self.RAW_LEVELS = "EP Log!F3:F"
             self.RAW_CLASSES = "EP Log!G3:G"
             self.RAW_NAMES = "EP Log!H3:H"
@@ -181,7 +182,6 @@ class GoogleSheets:
             # add to master dictionary with current values, either defaults if
             # no player match found, or values found at 'counter'
             master_dict[player] = {'level': player_level, 'class': player_class, 'race': player_race}
-
         return master_dict
 
     def set_effort_points(self):
