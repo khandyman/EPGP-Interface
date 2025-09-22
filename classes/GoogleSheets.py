@@ -30,8 +30,7 @@ class GoogleSheets:
 
             # If modifying these scopes, delete the file token.json.
 
-            self.SPREADSHEET_ID = "1DJm8BhaaxZlwLea0ZVZcyVUhMvQ8_VcmIyahBijajjg"  # official EPGP log
-            # self.SPREADSHEET_ID = "1sfUtXiFD2LD2F0KnasLGJazNPQXi66BF99nDgY-4szI"  # test copy
+            self.SPREADSHEET_ID = "1pu43LSErcxSaaAkaaTrvMi8GfZYV-dRf1qaWyKiveAA"  # official EPGP log
             self.RAW_LEVELS = "EP Log!F3:F"
             self.RAW_CLASSES = "EP Log!G3:G"
             self.RAW_NAMES = "EP Log!H3:H"
