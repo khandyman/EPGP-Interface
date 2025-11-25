@@ -181,7 +181,6 @@ class GoogleSheets:
             # add to master dictionary with current values, either defaults if
             # no player match found, or values found at 'counter'
             master_dict[player] = {'level': player_level, 'class': player_class, 'race': player_race}
-
         return master_dict
 
     def set_effort_points(self):
