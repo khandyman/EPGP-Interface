@@ -595,16 +595,20 @@ class TabBank(ttk.Frame):
 
             self.clear_bank()
 
-    def sync_spells(self, log_data, sheet_data):
-        # This function compares spell bank tab with app sheet
-        # to find spells in log that do not exist on mules;
+    def sync_log(self, log_data, sheet_data):
+        # This function compares spell/item bank tab with app sheet
+        # to find spells/items in log that do not exist on mules;
         # rows found are deleted
         # Parameters: log_data (list)
         #             sheet_data (list)
         # Return: log_data (list)
 
         # the id of the Spell Bank tab spreadsheet
-        sheet_id = '1071255945'
+        if self.get_bank_type() == "Spell Bank":
+            sheet_id = '1071255945'
+        else:
+            sheet_id = '193494556'
+
         sheet_mule = sheet_data[0][1]
         # grab the max list index to use in reversing loop
         index = len(log_data) - 1
@@ -615,7 +619,7 @@ class TabBank(ttk.Frame):
             # double booleans to signal matching mule but
             # not matching spell
             found_mule = False
-            found_spell = False
+            found_entry = False
 
             # if row is empty, we can't assign values
             if len(log_row) > 0:
@@ -625,22 +629,22 @@ class TabBank(ttk.Frame):
                 if log_mule == sheet_mule:
                     # flag boolean as true
                     found_mule = True
-                    log_spell = log_row[2]
+                    log_entry = log_row[2]
 
                     # loop through data from sheet
                     for sheet_row in sheet_data:
-                        sheet_spell = sheet_row[2]
+                        sheet_entry = sheet_row[2]
 
                         # if spell is found, no deletion necessary,
                         # so flag as true
-                        if log_spell == sheet_spell:
-                            found_spell = True
+                        if log_entry == sheet_entry:
+                            found_entry = True
                             break
 
             # if row is empty, because officer forgot to delete it,
             # or if mule from log matches sheet but spell from log not
             # found in sheet
-            if len(log_row) < 1 or (found_mule is True and found_spell is False):
+            if len(log_row) < 1 or (found_mule is True and found_entry is False):
                 # then build delete JSON payload for sheets API
                 request_body = {
                     'requests': [
@@ -693,7 +697,8 @@ class TabBank(ttk.Frame):
         # from spell/item bank to sky bank
         match self.get_bank_type():
             case "Item Bank":
-                log_data = self._sheets.read_values(self.ITEM_BANK, "FORMATTED_VALUE")
+                log_data = self.sync_log(self._sheets.read_values(self.ITEM_BANK, "FORMATTED_VALUE"),
+                                         sheet_data)
                 qty_col = 3
             case "Sky Bank":
                 log_data = self.get_sky_droppables()
@@ -702,8 +707,8 @@ class TabBank(ttk.Frame):
             case _:
                 # if spell bank, return result of read_values to syncing algorithm to prune
                 # spell bank tab of spells that no longer exist on mules
-                log_data = self.sync_spells(self._sheets.read_values(self.SPELL_BANK, "FORMATTED_VALUE"),
-                                            sheet_data)
+                log_data = self.sync_log(self._sheets.read_values(self.SPELL_BANK, "FORMATTED_VALUE"),
+                                         sheet_data)
                 qty_col = 3
 
         # loop through each row in the bank sheet

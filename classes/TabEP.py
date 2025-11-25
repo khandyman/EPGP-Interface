@@ -351,9 +351,8 @@ class TabEP(ttk.Frame):
         self.set_ep_grid()
 
     def process_guild_list(self, guild_list):
-        # This function retrieves scans the guild list
-        # from the user's log file and converts alts
-        # to mains
+        # This function scans the guild list from the
+        # user's log file and converts alts to mains
         # Parameters: self (inherit from TabEP parent)
         #             guild_list (list of guild members)
         # Return: guild_list (processed list of guild members)
@@ -376,13 +375,23 @@ class TabEP(ttk.Frame):
             # for the current character
             if found_name is False:
                 # use the current name as an input to the database query,
-                # grab the main that matchese the discord_id of the alt
+                # grab the main that matches the discord_id of the alt
                 main = self._database.find_main(guild_row[6])
 
                 # if the query returned anything
                 if len(main) > 0:
                     # edit the level (from the sheets dict), the class, and the name
-                    guild_row[4] = self._sheets.get_player_level(main[0]['char_name'])
+                    # ---NOTE--- enclosing in try block because if char was found in bot database
+                    # above but this is their first raid, they will not yet exist in
+                    # the player dict from the EPGP Log, which will cause
+                    # sheets.get_player_level to throw a key error
+                    try:
+                        guild_row[4] = self._sheets.get_player_level(main[0]['char_name'])
+                    except KeyError:
+                        # if KeyError thrown just continue, the player level (guild_row[4])
+                        # will remain whatever was pulled from the EQ log file
+                        continue
+
                     guild_row[5] = main[0]['char_class']
                     guild_row[6] = main[0]['char_name']
 
