@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 import discord
 import asyncio
 
+from sqlalchemy import false
+
 from classes.AutocompleteCombobox import AutocompleteCombobox
 from classes.AddEP import AddEP
 from classes.Helper import Helper
@@ -42,6 +44,9 @@ class TabEP(ttk.Frame):
         self._ep_time_combo = ttk.Combobox(self)
         self._ep_type = tk.StringVar()
         self._ep_sheet = tksheet.Sheet(self)
+
+        # The variable for the notes entry field
+        self._ep_notes = tk.StringVar()
 
         # set up for guild meeting function; load
         # bot token from env and initialize list
@@ -80,6 +85,9 @@ class TabEP(ttk.Frame):
     def get_ep_type(self):
         return self._ep_type.get()
 
+    def get_ep_notes(self):
+        return self._ep_notes.get()
+
     def get_ep_sheet(self):
         return self._ep_sheet.get_sheet_data()
 
@@ -99,6 +107,9 @@ class TabEP(ttk.Frame):
     def set_ep_type(self, ep_value):
         self._ep_type.set(ep_value)
 
+    def set_ep_notes(self, ep_value):
+        self._ep_notes.set(ep_value)
+
     def set_ep_sheet(self, ep_value):
         self._ep_sheet.set_sheet_data(ep_value)
 
@@ -112,21 +123,27 @@ class TabEP(ttk.Frame):
         # Parameters:  self (inherit from TabEP parent)
         # Return: none
 
-        ep_title = ttk.Label(self, text='EP Entry', font='Calibri 24 bold')
+        ep_title = ttk.Label(self, text='EP Entry', font='Calibri 24 bold', takefocus=False)
         ep_title.place(x=380, y=0)
 
-        ep_time_label = ttk.Label(self, text='Import Filter')
-        ep_time_label.place(x=110, y=50, width=360, height=30)
+        ep_time_label = ttk.Label(self, text='Import Filter', takefocus=False)
+        ep_time_label.place(x=50, y=50, width=340, height=30)
 
-        ep_type_label = ttk.Label(self, text='Point Type')
-        ep_type_label.place(x=590, y=50, width=170, height=30)
+        ep_type_label = ttk.Label(self, text='Point Type', takefocus=False)
+        ep_type_label.place(x=420, y=50, width=140, height=30)
+
+        ep_notes_label = ttk.Label(self, text='Notes', takefocus=False)
+        ep_notes_label.place(x=590, y=50, width=250, height=30)
 
         self._ep_time_combo.configure(font=('Calibri', 12), height=40, textvariable=self._ep_time, values=[])
-        self._ep_time_combo.place(x=110, y=80, width=360)
+        self._ep_time_combo.place(x=50, y=80, width=340)
 
         ep_type_entry = AutocompleteCombobox(self, self._sheets.get_effort_points())
         ep_type_entry.configure(font=('Calibri', 12), height=40, textvariable=self._ep_type)
-        ep_type_entry.place(x=590, y=80, width=170)
+        ep_type_entry.place(x=420, y=80, width=140)
+
+        ep_notes_entry = ttk.Entry(self, font='Calibri 12', foreground="#A9BDBD", textvariable=self._ep_notes)
+        ep_notes_entry.place(x=590, y=80, width=250)
 
         ep_header = ('Month', 'Date', 'Time', 'Year', 'Level', 'Class', 'Name', 'Race', '.')
         self._ep_sheet.set_header_data(ep_header)
@@ -255,6 +272,7 @@ class TabEP(ttk.Frame):
 
         self.set_ep_time('')
         self.set_ep_type('')
+        self.set_ep_notes('')
 
         num_rows = self._ep_sheet.get_total_rows()
 
@@ -313,13 +331,53 @@ class TabEP(ttk.Frame):
             try:
                 # send the HTTP write request to the Sheets API
                 self._sheets.append_values(range_body_values)
+                print("stuff")
 
             except HttpError as error:
                 print(f"An error occurred: {error}")
                 self._helper.display_error(f'The Google API has returned this error:\n{error.error_details}')
                 return error
 
+            # if user has entered a note
+            if self.get_ep_notes():
+                # call add_note function
+                self.add_note(row_count)
+
             self.clear_ep()
+
+    def add_note(self, row_count):
+        # This function appends a manual note entered
+        # by user to the first row of the current block
+        # of EP data being appended to the log
+        # Parameters: self (inherit from TabEP parent)
+        #               row_count (first row of current insertion)
+        # Return: none
+
+        # get note entered and convert to nested list, because
+        # Google API is expecting that format
+        notes = [[self.get_ep_notes()]]
+
+        # Set up a JSON style body object for the
+        # batch update in the append values function
+        range_body_values = {
+            'value_input_option': 'USER_ENTERED',
+            'data': [
+                {
+                    'majorDimension': 'ROWS',
+                    'range': f'EP Log!W{row_count}:W{row_count}',
+                    'values': notes
+                }
+            ]
+        }
+
+        try:
+            # send the HTTP write request to the Sheets API
+            self._sheets.append_values(range_body_values)
+
+        except HttpError as error:
+            print(f"An error occurred: {error}")
+            self._helper.display_error(f'The Google API has returned this error:\n{error.error_details}')
+            return error
 
     def import_ep_data(self):
         # This function retrieves EP attendance data

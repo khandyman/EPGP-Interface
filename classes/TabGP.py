@@ -131,25 +131,25 @@ class TabGP(ttk.Frame):
         # Parameters: self (inherit from TabGP parent)
         # Return: none
 
-        priority_title = ttk.Label(self, text='Get Priority', font='Calibri 24 bold')
+        priority_title = ttk.Label(self, text='Get Priority', font='Calibri 24 bold', takefocus=False)
         priority_title.place(x=370, y=0)
 
-        character_header = ttk.Label(self, text='Character')
+        character_header = ttk.Label(self, text='Character', takefocus=False)
         character_header.place(x=65, y=45)
 
-        gear_level_header = ttk.Label(self, text='Gear Level')
+        gear_level_header = ttk.Label(self, text='Gear Level', takefocus=False)
         gear_level_header.place(x=230, y=45)
 
-        priority_header = ttk.Label(self, text='Priority')
+        priority_header = ttk.Label(self, text='Priority', takefocus=False)
         priority_header.place(x=395, y=45)
 
-        priority_winner_label = ttk.Label(self, text='Winner')
+        priority_winner_label = ttk.Label(self, text='Winner', takefocus=False)
         priority_winner_label.place(x=620, y=60, width=150, height=40)
 
-        priority_ratio_label = ttk.Label(self, text='Priority')
+        priority_ratio_label = ttk.Label(self, text='Priority', takefocus=False)
         priority_ratio_label.place(x=620, y=135, width=90, height=40)
 
-        priority_level_label = ttk.Label(self, text='Gear Level')
+        priority_level_label = ttk.Label(self, text='Gear Level', takefocus=False)
         priority_level_label.place(x=620, y=210, width=150, height=40)
 
         priority_winner_text = ttk.Entry(self, font='Calibri 12', state=tk.DISABLED, foreground="#A9BDBD",
@@ -181,22 +181,22 @@ class TabGP(ttk.Frame):
         gp_separator.place(x=10, y=400, width=855)
 
         # ------------------- GP Entry Section -------------------
-        gp_title = ttk.Label(self, text='GP Entry', font='Calibri 24 bold')
+        gp_title = ttk.Label(self, text='GP Entry', font='Calibri 24 bold', takefocus=False)
         gp_title.place(x=387, y=410)
 
-        gp_date_label = ttk.Label(self, text='Date')
+        gp_date_label = ttk.Label(self, text='Date', takefocus=False)
         gp_date_label.place(x=20, y=450, width=100, height=30)
 
-        gp_date_info_label = ttk.Label(self, text='click to change', font='Calibri 10')
+        gp_date_info_label = ttk.Label(self, text='click to change', font='Calibri 10', takefocus=False)
         gp_date_info_label.place(x=25, y=515)
 
-        gp_character_label = ttk.Label(self, text='Character')
+        gp_character_label = ttk.Label(self, text='Character', takefocus=False)
         gp_character_label.place(x=155, y=450, width=160, height=30)
 
-        gp_loot_label = ttk.Label(self, text='Loot')
+        gp_loot_label = ttk.Label(self, text='Loot', takefocus=False)
         gp_loot_label.place(x=330, y=450, width=315, height=30)
 
-        gp_level_label = ttk.Label(self, text='Gear Level')
+        gp_level_label = ttk.Label(self, text='Gear Level', takefocus=False)
         gp_level_label.place(x=660, y=450, width=200, height=30)
 
         gp_date_entry = ttk.Entry(self, font='Calibri 12', textvariable=self._gp_date)
